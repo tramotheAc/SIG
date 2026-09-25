@@ -546,9 +546,15 @@ function EmbedButton({ sel, index }: { sel: EntityRef; index: PatrimoineIndex })
   const url = buildEmbedUrl(cfg.url, values);
   return (
     <div className="embed-bar">
-      <button type="button" className="btn btn-primary btn-sm" onClick={() => set({ embed: { title: `${cfg.label} — ${values.nom ?? values.code ?? sel.id}`, url } })}>
-        <Icon name="chart" size={15} /> {cfg.label}
-      </button>
+      {cfg.mode === 'onglet' ? (
+        <a className="btn btn-primary btn-sm" href={url} target="_blank" rel="noopener noreferrer">
+          <Icon name="external" size={15} /> {cfg.label}
+        </a>
+      ) : (
+        <button type="button" className="btn btn-primary btn-sm" onClick={() => set({ embed: { title: `${cfg.label} — ${values.nom ?? values.code ?? sel.id}`, url } })}>
+          <Icon name="chart" size={15} /> {cfg.label}
+        </button>
+      )}
     </div>
   );
 }

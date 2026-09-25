@@ -109,6 +109,8 @@ export interface EmbedConfig {
   enabled: boolean;
   /** Texte du bouton dans la fiche. */
   label: string;
+  /** Ouverture : panneau intégré (iframe) ou nouvel onglet (sites qui refusent l'intégration). */
+  mode?: 'panneau' | 'onglet';
   /** Adresse avec variables : {id} {code} {nom} {insee} {commune} {epci} {epciNom} {agence} {agenceNom} {departement}. */
   url: string;
 }

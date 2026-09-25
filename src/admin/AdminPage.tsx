@@ -994,6 +994,10 @@ function TableauxSection({ cfg, update }: Props) {
           Pour chaque type d’objet, indiquez l’adresse de la page à ouvrir. Les variables entre accolades sont remplacées par les
           valeurs de l’objet cliqué : on peut ainsi ouvrir un rapport Power BI déjà filtré. Exemple (filtre d’URL Power BI) :
         </p>
+        <p className="admin-hint">
+          Power BI : utilisez le lien « Fichier → Incorporer le rapport → Site web ou portail » (reportEmbed…). Le lien normal
+          d’un rapport refuse l’intégration (« n’autorise pas la connexion ») : choisissez alors « Nouvel onglet ».
+        </p>
         <code className="admin-code">{'https://app.powerbi.com/reportEmbed?reportId=…&autoAuth=true&ctid=…&filter=Patrimoine/Code_niveau_patrimoine_1 eq \'{code}\''}</code>
         <details className="admin-meta">
           <summary>Variables disponibles</summary>
@@ -1021,6 +1025,12 @@ function TableauxSection({ cfg, update }: Props) {
               <div className="admin-grid">
                 <Field label="Texte du bouton">
                   <input className="input" value={e.label} onChange={(ev) => update((c) => void (c.embeds[i].label = ev.target.value))} />
+                </Field>
+                <Field label="Ouverture" hint="Nouvel onglet : pour les pages qui refusent d’être intégrées (lien Power BI classique…).">
+                  <select className="select" value={e.mode ?? 'panneau'} onChange={(ev) => update((c) => void (c.embeds[i].mode = ev.target.value as 'panneau' | 'onglet'))}>
+                    <option value="panneau">Panneau dans la carte</option>
+                    <option value="onglet">Nouvel onglet</option>
+                  </select>
                 </Field>
                 <Field label="Adresse de la page (avec variables)" wide>
                   <input className="input mono" value={e.url} placeholder="https://app.powerbi.com/reportEmbed?…&filter=Table/Champ eq '{code}'" onChange={(ev) => update((c) => void (c.embeds[i].url = ev.target.value))} />
