@@ -170,7 +170,8 @@ function layerToSetting(l: ReferenceLayerDef): LayerSetting {
   const k = l.kind;
   return {
     id: l.id,
-    enabled: true,
+    // Zones inondables (WMS Géorisques) : refus CORS des images + nom de couche non confirmé → désactivée par défaut.
+    enabled: l.id !== 'inondation',
     label: l.label,
     sourceType: k.type === 'geojson-url' ? 'geojson' : k.type === 'raster' ? 'tuiles' : 'service',
     url: k.type === 'geojson-url' ? k.url : k.type === 'raster' ? k.tiles[0] : '',
