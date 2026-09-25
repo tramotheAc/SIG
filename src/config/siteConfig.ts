@@ -100,7 +100,7 @@ export interface SiteConfig {
     exportTemplates: boolean;
     searchBan: boolean;
   };
-  services: { geoApi: string; geocodage: string; zonageApl: string; zonagePinel: string; googleMapsKey: string };
+  services: { geoApi: string; geocodage: string; zonageApl: string; zonagePinel: string };
 }
 
 export const TAB_LABELS: Record<TabKey, string> = { patrimoine: 'Patrimoine', couches: 'Couches', filtres: 'Filtres', analyse: 'Analyse' };
@@ -216,7 +216,6 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = clone({
     geocodage: appConfig.services.geocodage,
     zonageApl: zonageFiles.apl,
     zonagePinel: zonageFiles.pinel,
-    googleMapsKey: '',
   },
 } satisfies SiteConfig);
 
@@ -316,7 +315,6 @@ export function applySiteConfig(cfg: SiteConfig) {
   for (const s of cfg.basemaps) {
     const def = bm.find((b) => b.id === s.id);
     if (!def || !s.enabled) continue;
-    if (def.google3d && !cfg.services.googleMapsKey) continue; // pas de clé : fond non proposé
     basemaps.push({ ...def, label: s.label || def.label, tiles: s.tiles?.length || !def.tiles.length ? s.tiles : def.tiles });
   }
   if (!basemaps.length) basemaps.push(bm[0]);

@@ -38,8 +38,6 @@ export interface BasemapDef {
   paint?: Record<string, number>;
   /** Fond uni (pas de tuiles). */
   color?: string;
-  /** Fond 3D Google (Photorealistic 3D Tiles, rendu deck.gl, clé API requise). */
-  google3d?: boolean;
   meta: SourceMeta;
 }
 
@@ -130,26 +128,6 @@ export const basemaps: BasemapDef[] = [
       crs: 'EPSG:3857 (TileMatrixSet PM)',
       frequence: 'Renouvellement triennal par département',
       licence: 'Licence Ouverte Etalab 2.0',
-    },
-  },
-  {
-    id: 'google3d',
-    label: 'Google 3D',
-    tiles: [],
-    color: '#dfe3e8',
-    google3d: true,
-    attribution: 'Google',
-    maxzoom: 22,
-    meta: {
-      source: 'Google Maps Platform – Photorealistic 3D Tiles',
-      type: 'OGC 3D Tiles (rendu deck.gl)',
-      endpoint: 'https://tile.googleapis.com/v1/3dtiles/root.json',
-      millesime: 'Continu (Google)',
-      format: 'glTF / 3D Tiles',
-      crs: 'ECEF (WGS84)',
-      frequence: 'Continue',
-      licence: 'Conditions Google Maps Platform : clé API facturable, mentions Google obligatoires, export d’image interdit',
-      note: 'Visible uniquement si une clé API Google (Map Tiles API) est renseignée dans l’administration. Inclinaison : clic droit + glisser ou Ctrl + glisser.',
     },
   },
 ];

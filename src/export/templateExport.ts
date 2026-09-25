@@ -93,7 +93,7 @@ function templateLayers(tpl: ExportTemplate, current: Record<string, LayerState>
   return out;
 }
 
-const basemapOf = (tpl: ExportTemplate) => (basemaps.find((b) => b.id === tpl.basemap && !b.google3d) ?? basemaps.find((b) => !b.google3d) ?? basemaps[0]).id;
+const basemapOf = (tpl: ExportTemplate) => (basemaps.find((b) => b.id === tpl.basemap) ?? basemaps[0]).id;
 
 /** Carte dynamique : applique le modèle à la carte principale et cadre la zone. */
 export function applyTemplateToMap(tpl: ExportTemplate, type: ZoneType, id: string) {

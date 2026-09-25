@@ -430,12 +430,6 @@ function ServicesSection({ cfg, update }: Props) {
     { key: 'geocodage', label: 'Géocodage BAN', hint: 'Recherche d’adresses. Défaut : https://data.geopf.fr/geocodage', test: (u) => `${u}/search?q=rennes&limit=1` },
     { key: 'zonageApl', label: 'Zonage APL (CSV)', hint: 'Fichier ou API (ex. Tabular API data.gouv) : colonnes code INSEE + zone.' },
     { key: 'zonagePinel', label: 'Zonage ABC / Pinel (CSV)', hint: 'Fichier ou API : colonnes code INSEE + zone.' },
-    {
-      key: 'googleMapsKey',
-      label: 'Clé API Google (Map Tiles API) — fond Google 3D',
-      hint: 'Clé navigateur restreinte au domaine de l’application dans la console Google Cloud (facturation activée). Vide = fond Google 3D masqué.',
-      test: (k) => `https://tile.googleapis.com/v1/3dtiles/root.json?key=${k}`,
-    },
   ];
   return (
     <Card title="Adresses des services">
@@ -574,7 +568,7 @@ function TemplateCard({ t, cfg, set, onDuplicate, onDelete }: { t: ExportTemplat
       <div className="admin-grid">
         <Field label="Fond de carte">
           <select className="select" value={t.basemap} onChange={(e) => set((x) => void (x.basemap = e.target.value))}>
-            {cfg.basemaps.filter((b) => b.enabled && b.id !== 'google3d').map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+            {cfg.basemaps.filter((b) => b.enabled).map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
           </select>
         </Field>
         <Field label="Représentation du patrimoine">

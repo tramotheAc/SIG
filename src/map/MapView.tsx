@@ -7,8 +7,6 @@ import type { EntityRef } from '../domain/model';
 import { useAppStore } from '../store/useAppStore';
 import { useFilteredView } from '../store/useFilteredView';
 import { applyBasemap } from './basemap';
-import { disableGoogle3D, enableGoogle3D } from './google3d';
-import { basemaps } from '../config/layers.config';
 import { mapRef } from './mapRef';
 import {
   applyRepresentation,
@@ -83,7 +81,7 @@ export function MapView() {
       pitchWithRotate: false,
     });
     m.touchZoomRotate.disableRotation();
-    m.addControl(new NavigationControl({ showCompass: true, visualizePitch: true }), 'bottom-right');
+    m.addControl(new NavigationControl({ showCompass: false }), 'bottom-right');
     m.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-right');
     m.on('load', () => {
       applyBasemap(m, useAppStore.getState().basemap);
@@ -152,10 +150,7 @@ export function MapView() {
 
   /* Fond de carte */
   useEffect(() => {
-    if (!map) return;
-    applyBasemap(map, basemap);
-    if (basemaps.find((b) => b.id === basemap)?.google3d) void enableGoogle3D(map);
-    else disableGoogle3D(map);
+    if (map) applyBasemap(map, basemap);
   }, [map, basemap]);
 
   /* Représentation / style patrimoine */
