@@ -75,6 +75,33 @@ export interface ExportTemplate {
   output: TemplateOutput;
 }
 
+/** Couche créée par l'administrateur (WMTS, WMS, XYZ ou GeoJSON). */
+export interface CustomLayer {
+  id: string;
+  label: string;
+  group: 'referentiels' | 'limites' | 'zonages';
+  type: 'wmts' | 'wms' | 'xyz' | 'geojson';
+  /** Modèle d'URL de tuiles ({z} {x} {y} / {bbox-epsg-3857}) ou URL GeoJSON. */
+  url: string;
+  /** Adresse GetCapabilities d'origine (WMTS / WMS), pour mémoire. */
+  capabilitiesUrl?: string;
+  /** GeoJSON : représentation. */
+  geometry: 'fill' | 'line' | 'circle';
+  labelProp: string;
+  enabled: boolean;
+  visible: boolean;
+  color: string;
+  opacity: number;
+  width: number;
+  size: number;
+  labels: boolean;
+  minzoom: number;
+  controls: Control[];
+  source: string;
+  millesime: string;
+  attribution: string;
+}
+
 export const ZONE_LABELS: Record<ZoneType, string> = {
   residence: 'Résidence',
   commune: 'Commune',
@@ -99,6 +126,7 @@ export interface ApiSourceConfig {
 export interface SiteConfig {
   version: 1;
   exportTemplates: ExportTemplate[];
+  customLayers: CustomLayer[];
   data: {
     /** Source des données patrimoine : fichier Excel ou API (Data API Builder). */
     source: 'excel' | 'api';
@@ -217,6 +245,7 @@ export const DEFAULT_EXPORT_TEMPLATES: ExportTemplate[] = [
 export const DEFAULT_SITE_CONFIG: SiteConfig = clone({
   version: 1,
   exportTemplates: DEFAULT_EXPORT_TEMPLATES,
+  customLayers: [],
   data: {
     source: 'excel',
     excelUrl: appConfig.demoDataUrl,
@@ -266,6 +295,7 @@ export function mergeConfig(partial: Partial<SiteConfig> | undefined): SiteConfi
     defs.map((x) => ({ ...x, ...(over?.find((o) => o?.id === x.id) ?? {}) }));
   return {
     version: 1,
+    customLayers: Array.isArray(partial.customLayers) ? partial.customLayers : [],
     exportTemplates: Array.isArray(partial.exportTemplates) ? partial.exportTemplates.map((t) => tpl({ ...t })) : d.exportTemplates,
     data: {
       ...d.data,
@@ -384,6 +414,34 @@ export function applySiteConfig(cfg: SiteConfig) {
       meta: { ...def.meta, millesime: s.millesime || def.meta.millesime, endpoint: s.url || def.meta.endpoint },
     });
   }
+  // Couches créées dans l'administration
+  for (const c of cfg.customLayers) if (c.enabled && c.url) referenceLayers.push(customToDef(c));
+}
+
+export function customToDef(c: CustomLayer): ReferenceLayerDef {
+  const raster = c.type !== 'geojson';
+  return {
+    id: c.id,
+    label: c.label,
+    group: c.group,
+    geometry: raster ? 'raster' : c.geometry,
+    kind: raster ? { type: 'raster', tiles: [c.url], tileSize: 256 } : { type: 'geojson-url', url: c.url },
+    defaults: { color: c.color, opacity: c.opacity, width: c.width, size: c.size, labels: c.labels },
+    minzoom: c.minzoom || undefined,
+    interactive: !raster,
+    labelProp: c.labelProp || 'nom',
+    controls: raster ? c.controls.filter((k) => k === 'opacity') : c.controls,
+    meta: {
+      source: c.source || 'Couche ajoutée par l’administrateur',
+      type: c.type.toUpperCase(),
+      endpoint: c.capabilitiesUrl || c.url,
+      millesime: c.millesime || '—',
+      format: raster ? 'Tuiles image' : 'GeoJSON',
+      crs: raster ? 'EPSG:3857' : 'EPSG:4326 (Lambert-93 converti)',
+      frequence: '—',
+      note: c.attribution ? `Attribution : ${c.attribution}` : undefined,
+    },
+  };
 }
 
 export function downloadJson(cfg: SiteConfig) {

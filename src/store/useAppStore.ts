@@ -101,7 +101,7 @@ const initialLayers: Record<string, LayerState> = Object.fromEntries(
   referenceLayers.map((l) => [
     l.id,
     {
-      visible: siteConfig.layers.find((s) => s.id === l.id)?.visible ?? false,
+      visible: (siteConfig.layers.find((s) => s.id === l.id) ?? siteConfig.customLayers.find((c) => c.id === l.id))?.visible ?? false,
       opacity: l.defaults.opacity,
       color: l.defaults.color,
       width: l.defaults.width ?? 1,

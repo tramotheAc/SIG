@@ -26,6 +26,8 @@ import {
 import type { SourceMeta } from '../config/layers.config';
 import { COLOR_BY_OPTIONS } from '../domain/symbology';
 import { DataSourcePanel } from '../ui/DataSourcePanel';
+import { modernizeIgnUrl, parseWms, parseWmts, type OgcLayer } from './ogcCapabilities';
+import type { CustomLayer } from '../config/siteConfig';
 import { DabDataProvider, discoverEntities } from '../data/api/DabDataProvider';
 import { loadData } from '../store/bootstrap';
 import { Icon } from '../ui/components/Icon';
@@ -367,6 +369,7 @@ function CouchesSection({ cfg, update }: Props) {
   const groups = useMemo(() => [...new Set(CATALOG.layers.map((l) => l.group))], []);
   return (
     <>
+      <CustomLayersBlock cfg={cfg} update={update} />
       {groups.map((g) => (
         <div key={g} className="admin-group">
           <h2 className="admin-group-title">{GROUP_LABELS[g] ?? g}</h2>
@@ -682,7 +685,7 @@ function TemplateCard({ t, cfg, set, onDuplicate, onDelete }: { t: ExportTemplat
         <Switch checked={t.labels} onChange={(v) => set((x) => void (x.labels = v))} label="Libellés du patrimoine" />
       </div>
       <div className="admin-checks">
-        {cfg.layers.filter((l) => l.enabled).map((l) => (
+        {[...cfg.layers, ...cfg.customLayers].filter((l) => l.enabled).map((l) => (
           <label key={l.id} className="chip-toggle">
             <input type="checkbox" checked={t.layers.includes(l.id)} onChange={(e) => set((x) => void (x.layers = toggle(x.layers, l.id, e.target.checked)))} />
             {l.label}
@@ -724,6 +727,210 @@ function TemplateCard({ t, cfg, set, onDuplicate, onDelete }: { t: ExportTemplat
             <option value="les-deux">Carte + image</option>
           </select>
         </Field>
+      </div>
+    </Card>
+  );
+}
+
+/* ------------------------------ Couches créées ------------------------------ */
+
+const TYPE_LABELS: Record<CustomLayer['type'], string> = { wmts: 'WMTS', wms: 'WMS', xyz: 'Tuiles XYZ', geojson: 'GeoJSON (fichier / API)' };
+
+function newCustomLayer(): CustomLayer {
+  return {
+    id: `perso-${Date.now().toString(36)}`,
+    label: 'Nouvelle couche',
+    group: 'referentiels',
+    type: 'wmts',
+    url: '',
+    capabilitiesUrl: '',
+    geometry: 'fill',
+    labelProp: 'nom',
+    enabled: true,
+    visible: false,
+    color: '#1971c2',
+    opacity: 0.7,
+    width: 1,
+    size: 4,
+    labels: false,
+    minzoom: 0,
+    controls: ['opacity'],
+    source: '',
+    millesime: '',
+    attribution: '',
+  };
+}
+
+function CustomLayersBlock({ cfg, update }: Props) {
+  return (
+    <div className="admin-group">
+      <h2 className="admin-group-title">Couches créées</h2>
+      {cfg.customLayers.map((c, i) => (
+        <CustomLayerCard
+          key={c.id}
+          layer={c}
+          set={(fn) => update((x) => fn(x.customLayers[i]))}
+          onDelete={() => update((x) => void x.customLayers.splice(i, 1))}
+        />
+      ))}
+      <div>
+        <button type="button" className="btn btn-primary" onClick={() => update((x) => void x.customLayers.push(newCustomLayer()))}>
+          + Créer une couche
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CustomLayerCard({ layer: c, set, onDelete }: { layer: CustomLayer; set: (fn: (l: CustomLayer) => void) => void; onDelete: () => void }) {
+  const [caps, setCaps] = useState<{ status: 'idle' | 'loading' | 'ok' | 'ko'; layers?: OgcLayer[]; msg?: string }>({ status: 'idle' });
+  const [q, setQ] = useState('');
+  const ogc = c.type === 'wmts' || c.type === 'wms';
+
+  const readCaps = async () => {
+    const { url, changed } = modernizeIgnUrl(c.capabilitiesUrl ?? '');
+    if (changed) set((x) => void (x.capabilitiesUrl = url));
+    setCaps({ status: 'loading' });
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const xml = await res.text();
+      const layers = c.type === 'wmts' ? parseWmts(xml, url) : parseWms(xml, url);
+      setCaps({
+        status: layers.length ? 'ok' : 'ko',
+        layers,
+        msg: `${changed ? 'Ancienne adresse wxs.ign.fr remplacée par la Géoplateforme. ' : ''}${layers.length} couche(s) trouvée(s).`,
+      });
+    } catch {
+      setCaps({ status: 'ko', msg: 'GetCapabilities inaccessible depuis le navigateur (URL, réseau ou CORS).' });
+    }
+  };
+  const pick = (l: OgcLayer) =>
+    set((x) => {
+      x.url = l.url;
+      if (x.label === 'Nouvelle couche') x.label = l.title;
+      x.source = `${TYPE_LABELS[x.type]} — ${l.id}`;
+    });
+  const list = (caps.layers ?? []).filter((l) => !q || `${l.title} ${l.id}`.toLowerCase().includes(q.toLowerCase())).slice(0, 60);
+
+  return (
+    <Card
+      muted={!c.enabled}
+      title={
+        <span className="admin-title-row">
+          <Switch checked={c.enabled} onChange={(v) => set((x) => void (x.enabled = v))} />
+          {c.label}
+          <span className="badge badge-muted">{TYPE_LABELS[c.type]}</span>
+        </span>
+      }
+      right={
+        <span className="admin-checks">
+          <Switch checked={c.visible} onChange={(v) => set((x) => void (x.visible = v))} label="Affichée au démarrage" />
+          <button type="button" className="btn btn-sm" onClick={onDelete}>Supprimer</button>
+        </span>
+      }
+    >
+      <div className="admin-grid">
+        <Field label="Type de source">
+          <select className="select" value={c.type} onChange={(e) => set((x) => { x.type = e.target.value as CustomLayer['type']; x.url = ''; })}>
+            {(Object.keys(TYPE_LABELS) as CustomLayer['type'][]).map((t) => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
+          </select>
+        </Field>
+        <Field label="Libellé affiché">
+          <input className="input" value={c.label} onChange={(e) => set((x) => void (x.label = e.target.value))} />
+        </Field>
+        <Field label="Rubrique">
+          <select className="select" value={c.group} onChange={(e) => set((x) => void (x.group = e.target.value as CustomLayer['group']))}>
+            <option value="referentiels">Référentiels</option>
+            <option value="limites">Limites</option>
+            <option value="zonages">Zonages</option>
+          </select>
+        </Field>
+
+        {ogc && (
+          <Field label="Adresse GetCapabilities" hint="Ex. https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities" wide>
+            <div className="admin-inline">
+              <input className="input mono" value={c.capabilitiesUrl ?? ''} onChange={(e) => set((x) => void (x.capabilitiesUrl = e.target.value))} />
+              <button type="button" className="btn btn-sm" disabled={!c.capabilitiesUrl || caps.status === 'loading'} onClick={readCaps}>
+                {caps.status === 'loading' ? 'Lecture…' : 'Lister les couches'}
+              </button>
+            </div>
+          </Field>
+        )}
+        {ogc && caps.msg && <p className={`admin-hint is-wide ${caps.status === 'ko' ? 'admin-ko' : ''}`}>{caps.msg}</p>}
+        {ogc && caps.layers && caps.layers.length > 0 && (
+          <div className="is-wide">
+            <input className="input" placeholder="Filtrer les couches…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <ul className="tpl-zones admin-caps">
+              {list.map((l) => (
+                <li key={l.id}>
+                  <button type="button" disabled={!l.url} className={c.url === l.url ? 'is-selected' : ''} onClick={() => pick(l)} title={l.warning ?? l.id}>
+                    <span className="grow">{l.title}</span>
+                    <span className="muted small mono">{l.warning ? '⚠ non Web Mercator' : l.id}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <Field
+          label={c.type === 'geojson' ? 'URL GeoJSON (fichier ou API)' : 'Modèle d’URL des tuiles'}
+          hint={c.type === 'xyz' ? 'Ex. https://…/{z}/{x}/{y}.png' : c.type === 'geojson' ? 'Chemin relatif (referentiels/…) ou URL ; Lambert-93 accepté.' : 'Rempli automatiquement en choisissant une couche ci-dessus.'}
+          wide
+        >
+          <div className="admin-inline">
+            <input className="input mono" value={c.url} onChange={(e) => set((x) => void (x.url = e.target.value))} />
+            <TestUrl url={c.url} />
+          </div>
+        </Field>
+
+        {c.type === 'geojson' && (
+          <>
+            <Field label="Représentation">
+              <select className="select" value={c.geometry} onChange={(e) => set((x) => void (x.geometry = e.target.value as CustomLayer['geometry']))}>
+                <option value="fill">Surfaces</option>
+                <option value="line">Lignes / contours</option>
+                <option value="circle">Points</option>
+              </select>
+            </Field>
+            <Field label="Propriété du libellé"><input className="input mono" value={c.labelProp} onChange={(e) => set((x) => void (x.labelProp = e.target.value))} /></Field>
+          </>
+        )}
+        <Field label="Millésime"><input className="input" value={c.millesime} onChange={(e) => set((x) => void (x.millesime = e.target.value))} /></Field>
+        <Field label="Attribution / source"><input className="input" value={c.attribution} placeholder="ex. © IGN" onChange={(e) => set((x) => void (x.attribution = e.target.value))} /></Field>
+        <Field label={`Zoom minimal d’affichage : ${c.minzoom}`}>
+          <input type="range" min={0} max={18} step={1} value={c.minzoom} onChange={(e) => set((x) => void (x.minzoom = Number(e.target.value)))} />
+        </Field>
+      </div>
+
+      <div className="admin-sub">Style par défaut et réglages laissés à l’utilisateur</div>
+      <div className="admin-grid admin-style">
+        {c.type === 'geojson' && (
+          <Field label="Couleur"><input type="color" className="color-input" value={c.color} onChange={(e) => set((x) => void (x.color = e.target.value))} /></Field>
+        )}
+        <Field label={`Opacité : ${Math.round(c.opacity * 100)} %`}>
+          <input type="range" min={0} max={1} step={0.05} value={c.opacity} onChange={(e) => set((x) => void (x.opacity = Number(e.target.value)))} />
+        </Field>
+        {c.type === 'geojson' && c.geometry !== 'circle' && (
+          <Field label={`Épaisseur : ${c.width} px`}>
+            <input type="range" min={0.25} max={5} step={0.25} value={c.width} onChange={(e) => set((x) => void (x.width = Number(e.target.value)))} />
+          </Field>
+        )}
+        {c.type === 'geojson' && c.geometry === 'circle' && (
+          <Field label={`Taille : ${c.size} px`}>
+            <input type="range" min={2} max={10} step={0.5} value={c.size} onChange={(e) => set((x) => void (x.size = Number(e.target.value)))} />
+          </Field>
+        )}
+        {c.type === 'geojson' && <Switch checked={c.labels} onChange={(v) => set((x) => void (x.labels = v))} label="Libellés affichés" />}
+      </div>
+      <div className="admin-checks">
+        {(c.type === 'geojson' ? (['opacity', 'color', c.geometry === 'circle' ? 'size' : 'width', 'labels'] as Control[]) : (['opacity'] as Control[])).map((k) => (
+          <label key={k} className="chip-toggle">
+            <input type="checkbox" checked={c.controls.includes(k)} onChange={(e) => set((x) => void (x.controls = e.target.checked ? [...x.controls, k] : x.controls.filter((y) => y !== k)))} />
+            {CONTROL_LABELS[k]}
+          </label>
+        ))}
       </div>
     </Card>
   );
