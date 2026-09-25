@@ -2,8 +2,3 @@ node_modules
 dist
 *.log
 .DS_Store
-public/referentiels/*.geojson
-public/referentiels/*.csv
-public/referentiels/*.json
-app-statique/referentiels/*.geojson
-app-statique/referentiels/*.csv
