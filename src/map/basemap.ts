@@ -8,6 +8,10 @@ export function applyBasemap(map: MlMap, id: string) {
   const firstLayer = map.getStyle().layers.find((l) => l.id !== BASEMAP_LAYER)?.id;
   if (map.getLayer(BASEMAP_LAYER)) map.removeLayer(BASEMAP_LAYER);
   if (map.getSource(BASEMAP_LAYER)) map.removeSource(BASEMAP_LAYER);
+  if (!def.tiles.length) {
+    map.addLayer({ id: BASEMAP_LAYER, type: 'background', paint: { 'background-color': def.color ?? '#e5e7ea' } }, firstLayer);
+    return;
+  }
   map.addSource(BASEMAP_LAYER, { type: 'raster', tiles: def.tiles, tileSize: 256, maxzoom: def.maxzoom, attribution: def.attribution });
   map.addLayer({ id: BASEMAP_LAYER, type: 'raster', source: BASEMAP_LAYER, paint: { 'raster-fade-duration': 150, ...(def.paint ?? {}) } }, firstLayer);
 }

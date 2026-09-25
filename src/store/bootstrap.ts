@@ -104,7 +104,7 @@ async function enrich(seq: number) {
   const deps = new Set<string>(appConfig.departements);
   for (const r of index.residences.values()) if (r.communeInsee) deps.add(r.communeInsee.slice(0, 2));
 
-  const communeLayers = ['communes', 'epci', 'departements', 'apl', 'pinel'];
+  const communeLayers = ['communes', 'epci', 'apl', 'pinel'];
   communeLayers.forEach((id) => setStatus(id, 'loading'));
   const results = await Promise.allSettled([...deps].map((d) => fetchCommunes(d)));
   if (seq !== loadSeq) return;
@@ -114,7 +114,7 @@ async function enrich(seq: number) {
     const d = describe((results[0] as PromiseRejectedResult).reason);
     communeLayers.forEach((id) => setStatus(id, d.status, 'Référentiel administratif injoignable : EPCI et contours non disponibles.'));
   } else {
-    ['communes', 'epci', 'departements'].forEach((id) => setStatus(id, 'ready'));
+    ['communes', 'epci'].forEach((id) => setStatus(id, 'ready'));
   }
   recomputeGeo();
 

@@ -36,26 +36,28 @@ export interface BasemapDef {
   maxzoom: number;
   /** Ajustements de rendu MapLibre (désaturation pour le plan N&B, etc.). */
   paint?: Record<string, number>;
+  /** Fond uni (pas de tuiles). */
+  color?: string;
   meta: SourceMeta;
 }
 
 export const basemaps: BasemapDef[] = [
   {
     id: 'neutre',
-    label: 'Neutre',
-    tiles: ['a', 'b', 'c', 'd'].map((s) => `https://${s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png`),
-    attribution: '© OpenStreetMap contributors © CARTO',
-    maxzoom: 20,
+    label: 'Gris',
+    tiles: [],
+    color: '#e5e7ea',
+    attribution: '',
+    maxzoom: 22,
     meta: {
-      source: 'CARTO Positron (données OpenStreetMap)',
-      type: 'Tuiles raster XYZ',
-      endpoint: 'https://{a-d}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-      millesime: 'Continu (OSM)',
-      format: 'PNG',
-      crs: 'EPSG:3857',
-      frequence: 'Hebdomadaire',
-      licence: 'ODbL / conditions CARTO',
-      note: 'Fond très sobre, adapté à la lecture des données métier.',
+      source: 'Aucune (fond uni)',
+      type: 'Couleur unie',
+      endpoint: '—',
+      millesime: '—',
+      format: '—',
+      crs: '—',
+      frequence: '—',
+      note: 'Fond gris neutre, sans dépendance réseau : idéal pour lire les données métier (combiner avec Communes / Départements).',
     },
   },
   {
@@ -212,16 +214,16 @@ export const referenceLayers: ReferenceLayerDef[] = [
       type: 'raster',
       tileSize: 256,
       tiles: [
-        'https://georisques.gouv.fr/services?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=PPRN_COMMUNE_RISQINOND_APPROUV&STYLES=&FORMAT=image/png&TRANSPARENT=true&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256',
+        'https://www.georisques.gouv.fr/services?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=ALEA_SYNT_01_01FOR,ALEA_SYNT_01_02MOY,ALEA_SYNT_01_04FAI&STYLES=&FORMAT=image/png&TRANSPARENT=true&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256',
       ],
     },
     defaults: { color: '#1c7ed6', opacity: 0.6 },
     minzoom: 9,
     controls: ['opacity'],
     meta: {
-      source: 'Géorisques (MTE / BRGM) – PPR inondation approuvés',
+      source: 'Géorisques (MTE / BRGM) – TRI, aléa débordement de cours d’eau (fort / moyen / faible)',
       type: 'WMS',
-      endpoint: 'https://georisques.gouv.fr/services — PPRN_COMMUNE_RISQINOND_APPROUV',
+      endpoint: 'https://www.georisques.gouv.fr/services — ALEA_SYNT_01_01FOR, _02MOY, _04FAI',
       millesime: 'Selon la date d’approbation de chaque PPR',
       format: 'PNG',
       crs: 'EPSG:3857',
@@ -238,16 +240,16 @@ export const referenceLayers: ReferenceLayerDef[] = [
     label: 'Départements',
     group: 'limites',
     geometry: 'line',
-    kind: { type: 'service', service: 'departements' },
+    kind: { type: 'geojson-url', url: `${base}referentiels/departements.geojson` },
     defaults: { color: '#212529', opacity: 0.9, width: 2, labels: true },
     interactive: false,
     labelProp: 'nom',
     controls: ['opacity', 'color', 'width', 'labels'],
     meta: {
-      source: 'API Découpage administratif (geo.api.gouv.fr) – contours IGN Admin Express',
-      type: 'API REST',
-      endpoint: 'https://geo.api.gouv.fr/departements/{code}?format=geojson&geometry=contour',
-      millesime: 'Découpage de l’année en cours (COG INSEE)',
+      source: 'IGN Admin Express, version simplifiée (projet france-geojson), livrée avec l’application',
+      type: 'Fichier GeoJSON local',
+      endpoint: '/referentiels/departements.geojson (Bretagne, Loire-Atlantique et départements limitrophes)',
+      millesime: 'Limites départementales (stables)',
       format: 'GeoJSON',
       crs: 'EPSG:4326',
       frequence: 'Annuelle',
@@ -325,10 +327,9 @@ export const referenceLayers: ReferenceLayerDef[] = [
     id: 'quartiers',
     label: 'Quartiers',
     group: 'limites',
-    geometry: 'line',
+    geometry: 'fill',
     kind: { type: 'geojson-url', url: `${base}referentiels/quartiers.geojson` },
-    defaults: { color: '#0b7285', opacity: 0.8, width: 1, labels: true },
-    minzoom: 11,
+    defaults: { color: '#0b7285', opacity: 0.2, width: 1.2, labels: true },
     interactive: false,
     labelProp: 'nom',
     controls: ['opacity', 'color', 'width', 'labels'],

@@ -62,7 +62,11 @@ export class ReferenceLayerManager {
       if (!sourceId?.startsWith('ref-')) return;
       const id = sourceId.replace(/^ref-/, '').replace(/-labels$/, '');
       const st = useAppStore.getState().layers[id];
-      if (st && st.status !== 'error') useAppStore.getState().setLayer(id, { status: 'error', message: 'Service cartographique indisponible.' });
+      const msg =
+        id === 'inondation'
+          ? 'Le service Géorisques ne répond pas ou refuse l’affichage dans une autre application (CORS). Voir docs/SOURCES.md.'
+          : 'Service cartographique indisponible.';
+      if (st && st.status !== 'error') useAppStore.getState().setLayer(id, { status: 'error', message: msg });
     });
   }
 
@@ -183,6 +187,8 @@ export class ReferenceLayerManager {
     loader()
       .then((fc) => {
         (map.getSource(srcId(def.id)) as GeoJSONSource).setData(fc);
+        const bb = bboxOf(fc);
+        if (bb) layerBounds.set(def.id, bb);
         if (def.geometry !== 'circle') (map.getSource(labelSrc(def.id)) as GeoJSONSource).setData(labelPoints(fc, def.labelProp ?? 'nom'));
         const cur = useAppStore.getState().layers[def.id];
         if (cur.status !== 'error' && cur.status !== 'unavailable') setStatus(fc.features.length ? 'ready' : 'unavailable', fc.features.length ? undefined : 'Aucune donnée sur le territoire.');
@@ -403,6 +409,24 @@ export class ReferenceLayerManager {
       }
     }, 350);
   }
+}
+
+/** Emprise des couches GeoJSON chargées (bouton « Zoomer sur la couche »). */
+export const layerBounds = new Map<string, [[number, number], [number, number]]>();
+
+function bboxOf(fc: FeatureCollection): [[number, number], [number, number]] | undefined {
+  let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+  const walk = (c: unknown): void => {
+    if (Array.isArray(c) && typeof c[0] === 'number') {
+      const [x, y] = c as number[];
+      if (x < w) w = x;
+      if (x > e) e = x;
+      if (y < s) s = y;
+      if (y > n) n = y;
+    } else if (Array.isArray(c)) c.forEach(walk);
+  };
+  for (const f of fc.features) walk((f.geometry as { coordinates?: unknown } | null)?.coordinates);
+  return Number.isFinite(w) ? [[w, s], [e, n]] : undefined;
 }
 
 /** Dernière vue filtrée (utilisée lors du chargement asynchrone d'une couche). */

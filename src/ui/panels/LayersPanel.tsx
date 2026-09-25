@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { basemaps, referenceLayers, type LayerGroup, type ReferenceLayerDef, type SourceMeta } from '../../config/layers.config';
 import { useAppStore } from '../../store/useAppStore';
+import { layerBounds } from '../../map/referenceLayers';
 import { Icon } from '../components/Icon';
 import { ColorField, Section, Slider, StatusBadge, Toggle } from '../components/controls';
 
@@ -44,6 +45,7 @@ function LayerRow({ def }: { def: ReferenceLayerDef }) {
   const setLayer = useAppStore((s) => s.setLayer);
   const move = useAppStore((s) => s.moveLayer);
   const zoom = useAppStore((s) => s.zoom);
+  const flyTo = useAppStore((s) => s.flyTo);
   const [open, setOpen] = useState(false);
   const [info, setInfo] = useState(false);
   const tooFar = st.visible && def.minzoom !== undefined && zoom < def.minzoom;
@@ -53,6 +55,11 @@ function LayerRow({ def }: { def: ReferenceLayerDef }) {
         <Toggle checked={st.visible} onChange={(v) => setLayer(def.id, { visible: v })} label={def.label} />
         <StatusBadge status={st.visible ? st.status : 'idle'} message={st.message} />
         <div className="layer-tools">
+          {st.visible && st.status === 'ready' && layerBounds.has(def.id) && (
+            <button type="button" className="icon-btn" aria-label={`Zoomer sur : ${def.label}`} title="Zoomer sur la couche" onClick={() => flyTo({ bounds: layerBounds.get(def.id) })}>
+              <Icon name="zoom" size={15} />
+            </button>
+          )}
           <button type="button" className="icon-btn" aria-label={`Informations sur la source : ${def.label}`} title="Source et millésime" onClick={() => setInfo(!info)}>
             <Icon name="info" size={15} />
           </button>
