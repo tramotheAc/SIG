@@ -1,0 +1,4 @@
+Version pré-construite de l'application (aucune installation de Node.js nécessaire).
+Ouvrir ce dossier dans VS Code, clic droit sur index.html > "Open with Live Server".
+Ne pas ouvrir index.html par double-clic (file://) : le navigateur bloquerait le chargement.
+Régénérer (poste avec Node.js) : BASE_PATH=./ npx vite build --outDir app-statique

@@ -134,3 +134,9 @@ tests/               Tests unitaires
    des ressources auto-hébergées ou IGN pour ne dépendre que de services souverains.
 6. Ajouter tests end-to-end (Playwright) sur les parcours clés et une CI.
 7. Ultérieurement : sélection spatiale, cartes sauvegardées/partagées, export PDF.
+
+## Lancer sans Node.js (VS Code + Live Server)
+
+Le dossier `app-statique/` contient l'application déjà construite. Dans VS Code, installez
+l'extension **Live Server** (Ritwick Dey), puis clic droit sur `app-statique/index.html` →
+**Open with Live Server**. Ne pas ouvrir le fichier par double-clic (`file://` est bloqué par le navigateur).
