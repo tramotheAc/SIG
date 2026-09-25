@@ -24,7 +24,7 @@ export function Header() {
       notify(ok, 'success');
     } catch (e) {
       console.error(e);
-      notify('L’export a échoué. Réessayez ou réduisez la sélection.', 'error');
+      notify(e instanceof Error && e.name === 'UserError' ? e.message : 'L’export a échoué. Réessayez ou réduisez la sélection.', 'error');
     } finally {
       setBusy(false);
     }

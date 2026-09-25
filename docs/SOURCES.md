@@ -43,3 +43,14 @@ aussi consultable dans l'application (icône ⓘ du panneau Couches).
 La carte travaille en WGS84 (EPSG:4326) / Web Mercator (EPSG:3857). Les conversions sont faites à
 l'intégration : Lambert-93 (EPSG:2154) des fichiers Excel (`coordinates.ts`) et des QPV
 (`fetch-referentiels.mjs`). Les tuiles IGN sont demandées dans le TileMatrixSet `PM` (Web Mercator).
+
+## Fond Google 3D (optionnel)
+
+| Couche | Source | Type | Endpoint | Conditions |
+|---|---|---|---|---|
+| Google 3D | Google Maps Platform – Photorealistic 3D Tiles | OGC 3D Tiles (deck.gl) | `https://tile.googleapis.com/v1/3dtiles/root.json` | Clé API (Map Tiles API, facturation Google Cloud), restreinte au domaine de l'application ; mentions Google affichées ; export d'image interdit (désactivé dans l'application). |
+
+La clé se saisit dans l'administration (Services & API). Sans clé, le fond n'est pas proposé.
+La clé d'une API Google « navigateur » est visible dans le code de la page : c'est son
+fonctionnement normal ; la protection repose sur la restriction par domaine (HTTP referrer)
+configurée dans la console Google Cloud.

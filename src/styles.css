@@ -364,3 +364,5 @@ h1, h2, h3 { margin: 0; }
 .tpl-zones button:hover { background: var(--surface-2); }
 .tpl-zones button.is-selected { background: var(--brand-50); color: var(--accent); font-weight: 600; }
 .tpl-actions { display: flex; justify-content: flex-end; }
+.google-credits { position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 3; background: rgb(255 255 255 / 85%); color: #3c4043; font-size: 11px; padding: 2px 8px; border-radius: 4px; pointer-events: none; max-width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thumb-google3d { background: linear-gradient(160deg, #9cb4c9 0 35%, #7a8a6a 35% 60%, #b9a58c 60% 75%, #5f6f55 75%); }

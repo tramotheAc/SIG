@@ -8,6 +8,7 @@ export function applyBasemap(map: MlMap, id: string) {
   const firstLayer = map.getStyle().layers.find((l) => l.id !== BASEMAP_LAYER)?.id;
   if (map.getLayer(BASEMAP_LAYER)) map.removeLayer(BASEMAP_LAYER);
   if (map.getSource(BASEMAP_LAYER)) map.removeSource(BASEMAP_LAYER);
+  if (def.google3d) return; // canvas transparent : le rendu Google 3D (deck.gl) est dessous
   if (!def.tiles.length) {
     map.addLayer({ id: BASEMAP_LAYER, type: 'background', paint: { 'background-color': def.color ?? '#e5e7ea' } }, firstLayer);
     return;

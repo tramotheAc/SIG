@@ -15,6 +15,11 @@ export async function exportImage(view: FilteredView) {
   const map = mapRef.current;
   if (!map) throw new Error('Carte non initialisée');
   const s = useAppStore.getState();
+  if (basemaps.find((b) => b.id === s.basemap)?.google3d) {
+    const e = new Error('Export d’image impossible avec le fond Google 3D (conditions Google) : choisissez un autre fond.');
+    e.name = 'UserError';
+    throw e;
+  }
   const colorLabel = COLOR_BY_OPTIONS.find((o) => o.key === s.patrimoine.colorBy)?.label ?? '';
   const blob = await composeMapImage(map, view, { title: `Patrimoine — ${colorLabel}` });
   download(blob, `carte-patrimoine-${new Date().toISOString().slice(0, 10)}.png`);
