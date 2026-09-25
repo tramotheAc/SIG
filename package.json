@@ -1,0 +1,37 @@
+{
+  "name": "atlas-patrimoine",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Atlas cartographique métier — POC (patrimoine bailleur social, Bretagne & Loire-Atlantique)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc -b",
+    "demo:generate": "node scripts/generate-demo.mjs",
+    "referentiels:fetch": "node scripts/fetch-referentiels.mjs"
+  },
+  "dependencies": {
+    "@turf/buffer": "^7.4.0",
+    "exceljs": "^4.4.0",
+    "fflate": "^0.8.3",
+    "maplibre-gl": "^6.11.2",
+    "proj4": "^2.22.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/geojson": "^7946.0.16",
+    "@types/node": "^26.6.2",
+    "@types/proj4": "^2.5.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.1"
+  }
+}
