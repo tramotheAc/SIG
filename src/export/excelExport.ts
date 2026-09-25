@@ -18,7 +18,7 @@ async function writeWorkbook(filename: string, sheets: { name: string; rows: Rec
     const headers = s.rows.length ? Object.keys(s.rows[0]) : ['Information'];
     ws.columns = headers.map((h) => ({ header: h, key: h, width: Math.min(45, Math.max(12, h.length + 4)) }));
     ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F4C5C' } };
+    ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF29467B' } };
     ws.views = [{ state: 'frozen', ySplit: 1 }];
     if (s.rows.length) ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: headers.length } };
     for (const r of s.rows) ws.addRow(r);

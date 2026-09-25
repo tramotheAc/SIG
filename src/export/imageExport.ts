@@ -43,7 +43,7 @@ export async function exportImage(view: FilteredView) {
   const font = (size: number, weight = 400) => `${weight} ${px(size)}px Inter, system-ui, sans-serif`;
 
   // En-tête
-  ctx.fillStyle = '#0f4c5c';
+  ctx.fillStyle = '#29467b'; // --nuit (charte Aiguillon)
   ctx.fillRect(0, 0, out.width, headerH);
   ctx.fillStyle = '#ffffff';
   ctx.font = font(18, 600);
