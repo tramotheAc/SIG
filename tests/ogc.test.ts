@@ -26,6 +26,13 @@ describe('GetCapabilities', () => {
     expect(l.url).toContain('https://data.geopf.fr/wms-r/wms?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=INONDATION');
     expect(l.url).toContain('CRS=EPSG:3857&BBOX={bbox-epsg-3857}');
   });
+  it('WMS : projection héritée et couche non Web Mercator signalée', () => {
+    const xml = WMS.replace('<Layer><Title>Racine</Title>', '<Layer><Title>Racine</Title><CRS>EPSG:2154</CRS><CRS>EPSG:900913</CRS>').replace('</Layer></Layer>', '</Layer><Layer><Name>L93</Name><Title>Seulement L93</Title></Layer></Layer>');
+    const out = parseWms(xml.replace('EPSG:900913', 'EPSG:900913'), 'https://s/wms');
+    expect(out.find((l) => l.id === 'INONDATION')!.url).toContain('CRS=EPSG:900913');
+    const only = parseWms(WMS.replace('<Layer><Name>INONDATION', '<Layer><CRS>EPSG:2154</CRS><Name>INONDATION'), 'https://s/wms');
+    expect(only[0].warning).toMatch(/Web Mercator/);
+  });
   it('diagnostic d’une réponse non XML', () => {
     expect(describeResponse('<html><body>Accès bloqué par le proxy</body></html>x<')).toMatch(/pas du XML|Document/);
   });

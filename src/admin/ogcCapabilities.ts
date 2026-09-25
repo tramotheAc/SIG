@@ -92,14 +92,26 @@ export function parseWms(xml: string, capsUrl: string): OgcLayer[] {
   const version = doc.documentElement.getAttribute('version') ?? '1.3.0';
   const crsParam = version.startsWith('1.3') ? 'CRS' : 'SRS';
   const out: OgcLayer[] = [];
+  // Projections déclarées (héritées des couches parentes, cf. norme WMS)
+  const crsOf = (layer: Element): string[] => {
+    const own = [...layer.children].filter((c) => c.localName === 'CRS' || c.localName === 'SRS').flatMap((c) => text(c).split(/\s+/));
+    const parent = layer.parentElement;
+    return parent && parent.localName === 'Layer' ? [...own, ...crsOf(parent)] : own;
+  };
   for (const layer of all(doc, 'Layer')) {
     const name = text(child(layer, 'Name'));
     if (!name) continue;
     const title = text(child(layer, 'Title')) || name;
+    const crs = crsOf(layer).map((c) => c.toUpperCase());
+    const epsg = crs.includes('EPSG:3857') || !crs.length ? 'EPSG:3857' : crs.includes('EPSG:900913') ? 'EPSG:900913' : crs.includes('EPSG:102100') ? 'EPSG:102100' : '';
+    if (!epsg) {
+      out.push({ id: name, title, url: '', warning: 'Projection Web Mercator non proposée par le service : non affichable.' });
+      continue;
+    }
     out.push({
       id: name,
       title,
-      url: `${base}?SERVICE=WMS&REQUEST=GetMap&VERSION=${version}&LAYERS=${encodeURIComponent(name)}&STYLES=&FORMAT=image/png&TRANSPARENT=true&${crsParam}=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256`,
+      url: `${base}?SERVICE=WMS&REQUEST=GetMap&VERSION=${version}&LAYERS=${encodeURIComponent(name)}&STYLES=&FORMAT=image/png&TRANSPARENT=true&${crsParam}=${epsg}&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256`,
     });
   }
   return out.sort((a, b) => a.title.localeCompare(b.title, 'fr'));

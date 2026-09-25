@@ -62,11 +62,12 @@ export class ReferenceLayerManager {
       if (!sourceId?.startsWith('ref-')) return;
       const id = sourceId.replace(/^ref-/, '').replace(/-labels$/, '');
       const st = useAppStore.getState().layers[id];
-      const msg =
-        id === 'inondation'
-          ? 'Le service Géorisques ne répond pas ou refuse l’affichage dans une autre application (CORS). Voir docs/SOURCES.md.'
-          : 'Service cartographique indisponible.';
-      if (st && st.status !== 'error') useAppStore.getState().setLayer(id, { status: 'error', message: msg });
+      if (!st || st.status === 'error') return;
+      useAppStore.getState().setLayer(id, { status: 'error', message: 'Service cartographique indisponible — diagnostic en cours…' });
+      const def = referenceLayers.find((l) => l.id === id);
+      if (def?.kind.type === 'raster') {
+        void diagnoseTile(def.kind.tiles[0], map).then((message) => useAppStore.getState().setLayer(id, { status: 'error', message }));
+      }
     });
   }
 
@@ -409,6 +410,43 @@ export class ReferenceLayerManager {
       }
     }, 350);
   }
+}
+
+/**
+ * Diagnostic d'une couche de tuiles en échec : on demande UNE tuile au centre de la vue et on
+ * traduit la réponse (exception WMS, code HTTP, blocage CORS) en message compréhensible.
+ */
+export async function diagnoseTile(template: string, map: MlMap): Promise<string> {
+  const z = Math.max(0, Math.min(18, Math.round(map.getZoom())));
+  const c = map.getCenter();
+  const n = 2 ** z;
+  const x = Math.floor(((c.lng + 180) / 360) * n);
+  const latR = (c.lat * Math.PI) / 180;
+  const y = Math.floor(((1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2) * n);
+  const R = 6378137 * Math.PI;
+  const size = (2 * R) / n;
+  const bbox = [-R + x * size, R - (y + 1) * size, -R + (x + 1) * size, R - y * size].join(',');
+  const url = template.replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y)).replace('{bbox-epsg-3857}', bbox);
+  let res: Response;
+  try {
+    res = await fetch(url, { mode: 'cors' });
+  } catch {
+    try {
+      await fetch(url, { mode: 'no-cors' });
+      return 'Le service répond mais interdit l’affichage de ses images dans une autre application (CORS). Solution : passer par un relais (proxy) interne ou télécharger la donnée (fichier) sur data.gouv.fr / Géorisques.';
+    } catch {
+      return 'Service injoignable depuis ce poste (réseau de l’entreprise ou adresse incorrecte).';
+    }
+  }
+  const type = res.headers.get('content-type') ?? '';
+  if (!res.ok) return `Le service répond « HTTP ${res.status} » pour les images de la carte.`;
+  if (/xml|text/i.test(type)) {
+    const body = await res.text();
+    const m = body.match(/<(?:\w+:)?ServiceException[^>]*>([\s\S]*?)<\/|<(?:\w+:)?ExceptionText>([\s\S]*?)<\//);
+    const detail = (m?.[1] ?? m?.[2] ?? body).replace(/\s+/g, ' ').trim().slice(0, 220);
+    return `Le service refuse la demande : « ${detail} »${/CRS|SRS/i.test(detail) ? ' — la projection Web Mercator (EPSG:3857) n’est pas proposée pour cette couche.' : ''}`;
+  }
+  return 'Les images sont bien reçues mais ne peuvent pas être affichées (format ou CORS). Voir la console du navigateur (F12).';
 }
 
 /** Emprise des couches GeoJSON chargées (bouton « Zoomer sur la couche »). */
