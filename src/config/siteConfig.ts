@@ -83,10 +83,30 @@ export const ZONE_LABELS: Record<ZoneType, string> = {
   agence: 'Agence',
 };
 
+/** API REST au format Data API Builder (GET /rest/{entité}, pagination « nextLink »). */
+export interface ApiSourceConfig {
+  baseUrl: string;
+  /** Nom de l'entité exposée pour chaque table DWH (vide = table non chargée). */
+  entities: { organisation: string; patrimoine: string; lot: string; client: string; affectations: string };
+  /** Filtre OData facultatif par entité (ex. Indicateur_annulation eq 0). */
+  filters: { organisation: string; patrimoine: string; lot: string; client: string; affectations: string };
+  pageSize: number;
+  /** En-tête d'authentification facultatif (visible dans le navigateur : pas de secret). */
+  authHeader: string;
+  authValue: string;
+}
+
 export interface SiteConfig {
   version: 1;
   exportTemplates: ExportTemplate[];
-  data: { excelUrl: string; label: string; synthetic: boolean };
+  data: {
+    /** Source des données patrimoine : fichier Excel ou API (Data API Builder). */
+    source: 'excel' | 'api';
+    excelUrl: string;
+    label: string;
+    synthetic: boolean;
+    api: ApiSourceConfig;
+  };
   basemaps: BasemapSetting[];
   defaultBasemap: string;
   layers: LayerSetting[];
@@ -197,7 +217,20 @@ export const DEFAULT_EXPORT_TEMPLATES: ExportTemplate[] = [
 export const DEFAULT_SITE_CONFIG: SiteConfig = clone({
   version: 1,
   exportTemplates: DEFAULT_EXPORT_TEMPLATES,
-  data: { excelUrl: appConfig.demoDataUrl, label: 'Jeu de démonstration (données synthétiques)', synthetic: true },
+  data: {
+    source: 'excel',
+    excelUrl: appConfig.demoDataUrl,
+    label: 'Jeu de démonstration (données synthétiques)',
+    synthetic: true,
+    api: {
+      baseUrl: 'https://entrepotdevapi.ambitiousdesert-de2c4b66.francecentral.azurecontainerapps.io/rest',
+      entities: { organisation: 'Organisation', patrimoine: 'Patrimoine', lot: 'Lot', client: 'Client', affectations: '' },
+      filters: { organisation: '', patrimoine: '', lot: '', client: '', affectations: '' },
+      pageSize: 5000,
+      authHeader: '',
+      authValue: '',
+    },
+  },
   basemaps: basemaps.map((b) => ({ id: b.id, enabled: true, label: b.label, tiles: b.tiles })),
   defaultBasemap: basemaps[0].id,
   layers: referenceLayers.map(layerToSetting),
@@ -234,7 +267,16 @@ export function mergeConfig(partial: Partial<SiteConfig> | undefined): SiteConfi
   return {
     version: 1,
     exportTemplates: Array.isArray(partial.exportTemplates) ? partial.exportTemplates.map((t) => tpl({ ...t })) : d.exportTemplates,
-    data: { ...d.data, ...(partial.data ?? {}) },
+    data: {
+      ...d.data,
+      ...(partial.data ?? {}),
+      api: {
+        ...d.data.api,
+        ...(partial.data?.api ?? {}),
+        entities: { ...d.data.api.entities, ...(partial.data?.api?.entities ?? {}) },
+        filters: { ...d.data.api.filters, ...(partial.data?.api?.filters ?? {}) },
+      },
+    },
     basemaps: byId(d.basemaps, partial.basemaps),
     defaultBasemap: partial.defaultBasemap ?? d.defaultBasemap,
     layers: byId(d.layers, partial.layers),

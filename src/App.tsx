@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ExcelDataProvider } from './data/excel/ExcelDataProvider';
+import { configuredProvider } from './data/configuredProvider';
 import { MapView } from './map/MapView';
 import { loadData } from './store/bootstrap';
 import { DetailPanel } from './ui/DetailPanel';
@@ -24,7 +24,7 @@ export default function App() {
   }, []);
   // Les données sont chargées une fois, partagées par la carte et la page admin.
   useEffect(() => {
-    void loadData(ExcelDataProvider.demo());
+    void loadData(configuredProvider());
   }, []);
   if (admin) return <AdminPage />;
   return (

@@ -82,3 +82,22 @@ changement pour les panneaux.
 Les référentiels publics sont appelés depuis `src/data/referentiels/*`. Pour les remplacer par
 des sources du bailleur (ex. QPV ou quartiers maison), modifier l'entrée correspondante dans
 `src/config/layers.config.ts` (URL GeoJSON) ou réécrire la fonction de service concernée.
+
+## Implémenté : API de l'entrepôt (Data API Builder)
+
+`src/data/api/DabDataProvider.ts` charge les tables DWH exposées par Data API Builder
+(`GET {base}/{Entité}?$first=N[&$filter=…]`, pagination `nextLink`) et les convertit en
+« feuilles » passées au **même parser** que l'Excel : mapping, contrôles et rapport identiques.
+
+Paramétrage dans l'administration → *Données patrimoine* → **API de l'entrepôt** :
+URL de base (`…/rest`), bouton « Découvrir les entités » (lecture de `{base}/openapi`),
+entité et filtre OData par table, taille de page, en-tête d'authentification facultatif,
+« Tester le chargement ».
+
+Prérequis côté API :
+- **CORS** : l'origine de l'application doit être autorisée dans `dab-config.json`
+  (`runtime.host.cors.origins`), sinon le navigateur bloque les appels ;
+- noms de colonnes identiques aux tables DWH (sinon ajouter les alias dans `excel.mapping.ts`) ;
+- `max-page-size` DAB ≥ taille de page choisie ;
+- authentification : privilégier EasyAuth / SSO ; un en-tête saisi dans l'admin est visible par
+  tout utilisateur du site.

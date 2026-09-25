@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { excelMapping } from '../config/excel.mapping';
 import { ExcelDataProvider } from '../data/excel/ExcelDataProvider';
 import { loadData } from '../store/bootstrap';
+import { configuredProvider } from '../data/configuredProvider';
 import { useAppStore } from '../store/useAppStore';
 import { Icon } from './components/Icon';
 import { fmt } from './components/controls';
@@ -88,7 +89,7 @@ export function DataSourcePanel() {
               <li><strong>{excelMapping.client.sheets[0]}</strong> (facultatif) : occupation et conseiller social référent — les noms des locataires ne sont pas importés</li>
               <li><strong>{excelMapping.affectations.sheets[0]}</strong> (facultatif) : Code_patrimoine, Conseiller_commercial, Gerant_immobilier, Travailleur_social</li>
             </ul>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => void loadData(ExcelDataProvider.demo())}>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => void loadData(configuredProvider())}>
               Recharger la source configurée
             </button>
           </details>

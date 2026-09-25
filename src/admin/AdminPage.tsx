@@ -26,6 +26,8 @@ import {
 import type { SourceMeta } from '../config/layers.config';
 import { COLOR_BY_OPTIONS } from '../domain/symbology';
 import { DataSourcePanel } from '../ui/DataSourcePanel';
+import { DabDataProvider, discoverEntities } from '../data/api/DabDataProvider';
+import { loadData } from '../store/bootstrap';
 import { Icon } from '../ui/components/Icon';
 import { MetaCard } from '../ui/panels/LayersPanel';
 import './admin.css';
@@ -203,25 +205,112 @@ function TestUrl({ url }: { url: string }) {
 /* ------------------------------ Sections ------------------------------ */
 
 function DonneesSection({ cfg, update }: Props) {
+  const api = cfg.data.api;
+  const [entities, setEntities] = useState<string[]>();
+  const [discover, setDiscover] = useState<string>();
+  const [testing, setTesting] = useState(false);
+  const setSource = (source: 'excel' | 'api') =>
+    update((c) => {
+      c.data.source = source;
+      if (source === 'api') {
+        c.data.synthetic = false;
+        if (/démonstration/i.test(c.data.label)) c.data.label = 'Entrepôt de données (API)';
+      }
+    });
+  const runDiscover = async () => {
+    setDiscover('Lecture de l’OpenAPI…');
+    try {
+      const list = await discoverEntities(api.baseUrl, api.authHeader && api.authValue ? { [api.authHeader]: api.authValue } : {});
+      setEntities(list);
+      setDiscover(`${list.length} entités exposées.`);
+    } catch {
+      setDiscover('OpenAPI inaccessible depuis ce navigateur (réseau, VPN, CORS ou URL).');
+    }
+  };
+  const testLoad = async () => {
+    setTesting(true);
+    await loadData(new DabDataProvider(api, cfg.data.label));
+    setTesting(false);
+  };
+  const TABLES: { key: keyof typeof api.entities; label: string; hint: string }[] = [
+    { key: 'patrimoine', label: 'Patrimoine (obligatoire)', hint: 'DWH.Patrimoine : ensembles, adresses, cages' },
+    { key: 'organisation', label: 'Organisation', hint: 'DWH.Organisation : agences' },
+    { key: 'lot', label: 'Lot', hint: 'DWH.Lot : logements' },
+    { key: 'client', label: 'Client', hint: 'DWH.Client : occupation, conseiller social' },
+    { key: 'affectations', label: 'Affectations (facultatif)', hint: 'Gérant, commercial, travailleur social' },
+  ];
   return (
     <>
-      <Card title="Source publiée pour les utilisateurs">
+      <Card title="Source des données patrimoine">
+        <div className="segmented" role="radiogroup" aria-label="Source">
+          {(['excel', 'api'] as const).map((s) => (
+            <button key={s} type="button" role="radio" aria-checked={cfg.data.source === s} className={cfg.data.source === s ? 'is-active' : ''} onClick={() => setSource(s)}>
+              {s === 'excel' ? 'Fichier Excel' : 'API de l’entrepôt'}
+            </button>
+          ))}
+        </div>
         <div className="admin-grid">
-          <Field label="Fichier Excel (URL ou chemin)" hint="Chemin relatif à l’application (ex. demo/patrimoine.xlsx) ou URL d’une API renvoyant un .xlsx." wide>
-            <div className="admin-inline">
-              <input className="input" value={cfg.data.excelUrl} onChange={(e) => update((c) => void (c.data.excelUrl = e.target.value))} />
-              <TestUrl url={cfg.data.excelUrl} />
-            </div>
-          </Field>
           <Field label="Libellé affiché" wide>
             <input className="input" value={cfg.data.label} onChange={(e) => update((c) => void (c.data.label = e.target.value))} />
           </Field>
           <Switch checked={cfg.data.synthetic} onChange={(v) => update((c) => void (c.data.synthetic = v))} label="Données de démonstration (affiche le bandeau « synthétique »)" />
         </div>
       </Card>
-      <Card title="Contrôler un fichier / charger pour cette session">
+
+      {cfg.data.source === 'excel' ? (
+        <Card title="Fichier Excel publié">
+          <Field label="Fichier Excel (URL ou chemin)" hint="Chemin relatif à l’application (ex. demo/patrimoine.xlsx) ou URL renvoyant un .xlsx." wide>
+            <div className="admin-inline">
+              <input className="input" value={cfg.data.excelUrl} onChange={(e) => update((c) => void (c.data.excelUrl = e.target.value))} />
+              <TestUrl url={cfg.data.excelUrl} />
+            </div>
+          </Field>
+        </Card>
+      ) : (
+        <Card title="API de l’entrepôt (Data API Builder)">
+          <div className="admin-grid">
+            <Field label="URL de base REST" hint="Ex. https://…azurecontainerapps.io/rest — l’OpenAPI est lu sur {base}/openapi." wide>
+              <div className="admin-inline">
+                <input className="input mono" value={api.baseUrl} onChange={(e) => update((c) => void (c.data.api.baseUrl = e.target.value))} />
+                <button type="button" className="btn btn-sm" onClick={runDiscover}>Découvrir les entités</button>
+              </div>
+            </Field>
+            {discover && <p className="admin-hint is-wide">{discover}</p>}
+          </div>
+          <datalist id="dab-entities">{entities?.map((e) => <option key={e} value={e} />)}</datalist>
+          <div className="admin-sub">Entité exposée pour chaque table</div>
+          <div className="admin-grid">
+            {TABLES.map((t) => (
+              <Field key={t.key} label={t.label} hint={t.hint}>
+                <input className="input mono" list="dab-entities" value={api.entities[t.key]} placeholder="(non chargée)" onChange={(e) => update((c) => void (c.data.api.entities[t.key] = e.target.value))} />
+                <input className="input mono admin-filter" value={api.filters[t.key]} placeholder="Filtre OData facultatif, ex. Indicateur_annulation eq 0" onChange={(e) => update((c) => void (c.data.api.filters[t.key] = e.target.value))} />
+              </Field>
+            ))}
+          </div>
+          <div className="admin-sub">Options</div>
+          <div className="admin-grid">
+            <Field label="Taille de page ($first)">
+              <input className="input" type="number" min={100} max={100000} value={api.pageSize} onChange={(e) => update((c) => void (c.data.api.pageSize = Number(e.target.value)))} />
+            </Field>
+            <Field label="En-tête d’authentification (facultatif)" hint="Visible dans le navigateur : ne jamais y mettre de secret. Préférer l’authentification SSO / EasyAuth.">
+              <input className="input mono" value={api.authHeader} placeholder="ex. X-API-Key" onChange={(e) => update((c) => void (c.data.api.authHeader = e.target.value))} />
+            </Field>
+            <Field label="Valeur">
+              <input className="input mono" value={api.authValue} onChange={(e) => update((c) => void (c.data.api.authValue = e.target.value))} />
+            </Field>
+          </div>
+          <div className="admin-checks">
+            <button type="button" className="btn btn-primary btn-sm" disabled={testing || !api.entities.patrimoine} onClick={testLoad}>
+              {testing ? 'Chargement…' : 'Tester le chargement (cette session)'}
+            </button>
+            <span className="admin-hint">Le rapport de contrôle apparaît ci-dessous.</span>
+          </div>
+        </Card>
+      )}
+
+      <Card title="Données chargées dans cette session">
         <p className="admin-hint">
-          Le fichier est lu dans ce navigateur uniquement. Pour le publier à tous, déposez-le à côté de l’application et renseignez son chemin ci-dessus.
+          Contrôle d’un fichier Excel ou résultat du test API. Pour publier la source aux utilisateurs : Prévisualiser puis publier site.json.
         </p>
         <div className="admin-datasource">
           <DataSourcePanel />
