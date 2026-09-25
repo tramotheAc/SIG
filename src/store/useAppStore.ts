@@ -79,6 +79,8 @@ interface State {
   showImport: boolean;
   zoom: number;
   toast?: { message: string; tone: 'info' | 'error' | 'success'; nonce: number };
+  /** Page intégrée (tableau de bord) ouverte depuis une fiche. */
+  embed?: { title: string; url: string };
 }
 
 interface Actions {

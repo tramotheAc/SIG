@@ -102,6 +102,26 @@ export interface CustomLayer {
   attribution: string;
 }
 
+/** Page web (ex. rapport Power BI) ouverte depuis la fiche d'un objet, dans un cadre intégré. */
+export type EmbedKind = 'residence' | 'batiment' | 'logement' | 'commune' | 'epci' | 'agence' | 'qpv';
+export interface EmbedConfig {
+  kind: EmbedKind;
+  enabled: boolean;
+  /** Texte du bouton dans la fiche. */
+  label: string;
+  /** Adresse avec variables : {id} {code} {nom} {insee} {commune} {epci} {epciNom} {agence} {agenceNom} {departement}. */
+  url: string;
+}
+export const EMBED_KIND_LABELS: Record<EmbedKind, string> = {
+  residence: 'Résidence',
+  batiment: 'Bâtiment / adresse',
+  logement: 'Logement',
+  commune: 'Commune',
+  epci: 'EPCI',
+  agence: 'Agence',
+  qpv: 'QPV',
+};
+
 export const ZONE_LABELS: Record<ZoneType, string> = {
   residence: 'Résidence',
   commune: 'Commune',
@@ -127,6 +147,7 @@ export interface SiteConfig {
   version: 1;
   exportTemplates: ExportTemplate[];
   customLayers: CustomLayer[];
+  embeds: EmbedConfig[];
   data: {
     /** Source des données patrimoine : fichier Excel ou API (Data API Builder). */
     source: 'excel' | 'api';
@@ -247,6 +268,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = clone({
   version: 1,
   exportTemplates: DEFAULT_EXPORT_TEMPLATES,
   customLayers: [],
+  embeds: (['residence', 'batiment', 'logement', 'commune', 'epci', 'agence', 'qpv'] as EmbedKind[]).map((kind) => ({ kind, enabled: false, label: 'Tableau de bord', url: '' })),
   data: {
     source: 'excel',
     excelUrl: appConfig.demoDataUrl,
@@ -297,6 +319,7 @@ export function mergeConfig(partial: Partial<SiteConfig> | undefined): SiteConfi
   return {
     version: 1,
     customLayers: Array.isArray(partial.customLayers) ? partial.customLayers : [],
+    embeds: d.embeds.map((e) => ({ ...e, ...((partial.embeds ?? []).find((x) => x?.kind === e.kind) ?? {}) })),
     exportTemplates: Array.isArray(partial.exportTemplates) ? partial.exportTemplates.map((t) => tpl({ ...t })) : d.exportTemplates,
     data: {
       ...d.data,

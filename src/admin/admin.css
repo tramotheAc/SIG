@@ -49,3 +49,5 @@
 @media (max-width: 900px) { .admin { grid-template-columns: 1fr; } .admin-rail { flex-direction: row; overflow-x: auto; } .admin-rail nav { flex-direction: row; } }
 .admin-filter { font-size: 11.5px; height: 28px; }
 .admin-caps { margin-top: 6px; max-height: 260px; }
+.admin-code { display: block; white-space: pre-wrap; word-break: break-all; padding: 8px 10px; }
+.admin-preview { width: 100%; height: 520px; border: 1px solid var(--bord); border-radius: var(--radius-sm); background: #fff; }

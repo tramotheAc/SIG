@@ -22,6 +22,7 @@ import {
   type ZoneType,
   type TemplateOutput,
   ZONE_LABELS,
+  EMBED_KIND_LABELS,
 } from '../config/siteConfig';
 import type { SourceMeta } from '../config/layers.config';
 import { COLOR_BY_OPTIONS } from '../domain/symbology';
@@ -33,13 +34,17 @@ import { loadData } from '../store/bootstrap';
 import { Icon } from '../ui/components/Icon';
 import { MetaCard } from '../ui/panels/LayersPanel';
 import './admin.css';
+import { useAppStore } from '../store/useAppStore';
+import { buildEmbedUrl, entityValues } from '../ui/embed';
+import type { EntityRef } from '../domain/model';
 
-type Section = 'donnees' | 'fonds' | 'couches' | 'exports' | 'interface' | 'services' | 'publication';
+type Section = 'donnees' | 'fonds' | 'couches' | 'exports' | 'tableaux' | 'interface' | 'services' | 'publication';
 const SECTIONS: { id: Section; label: string; icon: string; help: string }[] = [
   { id: 'donnees', label: 'Données patrimoine', icon: 'database', help: 'Source Excel publiée, import et contrôle d’un fichier.' },
   { id: 'fonds', label: 'Fonds de carte', icon: 'image', help: 'Fonds proposés aux utilisateurs et fond par défaut.' },
   { id: 'couches', label: 'Couches', icon: 'layers', help: 'Sources (fichiers, API), style par défaut et réglages laissés aux utilisateurs.' },
   { id: 'exports', label: 'Exports types', icon: 'image', help: 'Modèles de cartes et d’images proposés aux utilisateurs : zone, couches, symbologie, format, cadrage.' },
+  { id: 'tableaux', label: 'Tableaux de bord', icon: 'chart', help: 'Page web (rapport Power BI…) ouverte depuis la fiche d’un objet, filtrée sur cet objet.' },
   { id: 'interface', label: 'Interface', icon: 'sliders', help: 'Onglets, filtres, critères de couleur, exports et recherche.' },
   { id: 'services', label: 'Services & API', icon: 'external', help: 'Adresses des API et des fichiers de référence.' },
   { id: 'publication', label: 'Publication', icon: 'upload', help: 'Prévisualiser, télécharger et publier la configuration.' },
@@ -121,6 +126,7 @@ export function AdminPage() {
           {section === 'fonds' && <FondsSection cfg={cfg} update={update} />}
           {section === 'couches' && <CouchesSection cfg={cfg} update={update} />}
           {section === 'exports' && <ExportsSection cfg={cfg} update={update} />}
+          {section === 'tableaux' && <TableauxSection cfg={cfg} update={update} />}
           {section === 'interface' && <InterfaceSection cfg={cfg} update={update} />}
           {section === 'services' && <ServicesSection cfg={cfg} update={update} />}
           {section === 'publication' && <PublicationSection cfg={cfg} setCfg={setCfg} />}
@@ -942,5 +948,102 @@ function CustomLayerCard({ layer: c, set, onDelete }: { layer: CustomLayer; set:
         ))}
       </div>
     </Card>
+  );
+}
+
+/* ------------------------------ Tableaux de bord ------------------------------ */
+
+const VARIABLES: [string, string][] = [
+  ['{code}', 'code de l’objet (résidence, bâtiment, logement, INSEE pour une commune…)'],
+  ['{nom}', 'nom / libellé'],
+  ['{id}', 'identifiant technique (ID_patrimoine, ID_lot…)'],
+  ['{insee}', 'code INSEE de la commune'],
+  ['{commune}', 'nom de la commune'],
+  ['{epci}', 'SIREN de l’EPCI'],
+  ['{epciNom}', 'nom de l’EPCI'],
+  ['{departement}', 'code département'],
+  ['{agence}', 'code agence'],
+  ['{agenceNom}', 'nom de l’agence'],
+  ['{rpls}', 'identifiant RPLS (logement)'],
+];
+
+/** Premier objet de chaque type dans les données chargées, pour l'aperçu. */
+function sampleRef(kind: string): EntityRef | undefined {
+  const ix = useAppStore.getState().index;
+  if (!ix) return undefined;
+  const first = <T,>(m: Map<string, T>) => m.keys().next().value as string | undefined;
+  const r = [...ix.residences.values()][0];
+  const id =
+    kind === 'residence' ? first(ix.residences)
+    : kind === 'batiment' ? first(ix.batiments)
+    : kind === 'logement' ? first(ix.logements)
+    : kind === 'agence' ? first(ix.agences)
+    : kind === 'commune' ? r?.communeInsee
+    : kind === 'epci' ? ix.epciOf(r?.communeInsee).code
+    : undefined;
+  return id ? { kind: kind as EntityRef['kind'], id } : undefined;
+}
+
+function TableauxSection({ cfg, update }: Props) {
+  const [preview, setPreview] = useState<string>();
+  useAppStore((s) => s.index); // ré-affichage quand les données sont chargées (exemples)
+  return (
+    <>
+      <Card title="Principe">
+        <p className="admin-hint">
+          Pour chaque type d’objet, indiquez l’adresse de la page à ouvrir. Les variables entre accolades sont remplacées par les
+          valeurs de l’objet cliqué : on peut ainsi ouvrir un rapport Power BI déjà filtré. Exemple (filtre d’URL Power BI) :
+        </p>
+        <code className="admin-code">{'https://app.powerbi.com/reportEmbed?reportId=…&autoAuth=true&ctid=…&filter=Patrimoine/Code_niveau_patrimoine_1 eq \'{code}\''}</code>
+        <details className="admin-meta">
+          <summary>Variables disponibles</summary>
+          <dl className="meta-card">
+            {VARIABLES.map(([k, d]) => <div key={k}><dt className="mono">{k}</dt><dd>{d}</dd></div>)}
+          </dl>
+        </details>
+      </Card>
+      {cfg.embeds.map((e, i) => {
+        const ref = sampleRef(e.kind);
+        const ix = useAppStore.getState().index;
+        const example = ref && ix && e.url ? buildEmbedUrl(e.url, entityValues(ix, ref)) : '';
+        return (
+          <Card
+            key={e.kind}
+            muted={!e.enabled}
+            title={
+              <span className="admin-title-row">
+                <Switch checked={e.enabled} onChange={(v) => update((c) => void (c.embeds[i].enabled = v))} />
+                {EMBED_KIND_LABELS[e.kind]}
+              </span>
+            }
+          >
+            {e.enabled && (
+              <div className="admin-grid">
+                <Field label="Texte du bouton">
+                  <input className="input" value={e.label} onChange={(ev) => update((c) => void (c.embeds[i].label = ev.target.value))} />
+                </Field>
+                <Field label="Adresse de la page (avec variables)" wide>
+                  <input className="input mono" value={e.url} placeholder="https://app.powerbi.com/reportEmbed?…&filter=Table/Champ eq '{code}'" onChange={(ev) => update((c) => void (c.embeds[i].url = ev.target.value))} />
+                </Field>
+                {example && (
+                  <Field label="Exemple avec un objet des données chargées" wide>
+                    <div className="admin-inline">
+                      <input className="input mono" readOnly value={example} />
+                      <button type="button" className="btn btn-sm" onClick={() => setPreview(example)}>Aperçu</button>
+                    </div>
+                  </Field>
+                )}
+              </div>
+            )}
+          </Card>
+        );
+      })}
+      {preview && (
+        <Card title="Aperçu" right={<button type="button" className="btn btn-sm" onClick={() => setPreview(undefined)}>Fermer</button>}>
+          <iframe className="admin-preview" src={preview} title="Aperçu du tableau de bord" />
+          <p className="admin-hint">Page vide ou refusée ? Le site cible interdit peut-être l’intégration (en-tête X-Frame-Options / CSP), ou demande une connexion.</p>
+        </Card>
+      )}
+    </>
   );
 }

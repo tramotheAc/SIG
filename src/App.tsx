@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { AdminPage } from './admin/AdminPage';
 import { LeftPanel } from './ui/LeftPanel';
 import { MapOverlays } from './ui/MapOverlays';
+import { EmbedViewer } from './ui/EmbedViewer';
 
 /**
  * Point d'entrée : le DataProvider est choisi ICI (et seulement ici).
@@ -35,6 +36,7 @@ export default function App() {
         <div className="map-area">
           <MapView />
           <MapOverlays />
+          <EmbedViewer />
         </div>
         <DetailPanel />
       </main>

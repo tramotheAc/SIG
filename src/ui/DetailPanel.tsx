@@ -8,6 +8,7 @@ import { colorRegistry } from '../store/colorRegistry';
 import { locate, selectAndZoom } from '../store/navigation';
 import { useAppStore } from '../store/useAppStore';
 import { Icon } from './components/Icon';
+import { buildEmbedUrl, embedFor, entityValues } from './embed';
 import { fmt } from './components/controls';
 import { ROLE_LABELS } from './panels/filterOptions';
 
@@ -36,6 +37,7 @@ export function DetailPanel() {
         <Icon name="close" />
       </button>
       <div className="detail-scroll">
+        <EmbedButton sel={sel} index={index} />
         <Fiche sel={sel} index={index} />
       </div>
     </aside>
@@ -532,5 +534,21 @@ function AdresseFiche({ sel, index }: { sel: EntityRef; index: PatrimoineIndex }
         </ul>
       </div>
     </>
+  );
+}
+
+/** Bouton « Tableau de bord » : page configurée en administration, filtrée sur l'objet. */
+function EmbedButton({ sel, index }: { sel: EntityRef; index: PatrimoineIndex }) {
+  const set = useAppStore((s) => s.set);
+  const cfg = embedFor(sel.kind);
+  if (!cfg) return null;
+  const values = entityValues(index, sel);
+  const url = buildEmbedUrl(cfg.url, values);
+  return (
+    <div className="embed-bar">
+      <button type="button" className="btn btn-primary btn-sm" onClick={() => set({ embed: { title: `${cfg.label} — ${values.nom ?? values.code ?? sel.id}`, url } })}>
+        <Icon name="chart" size={15} /> {cfg.label}
+      </button>
+    </div>
   );
 }
