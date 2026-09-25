@@ -44,7 +44,25 @@ export interface BasemapDef {
 export const basemaps: BasemapDef[] = [
   {
     id: 'neutre',
-    label: 'Gris',
+    label: 'Neutre',
+    tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'],
+    attribution: 'Esri, HERE, Garmin, © OpenStreetMap contributors',
+    maxzoom: 16,
+    meta: {
+      source: 'Esri World Light Gray Base (sans clé API)',
+      type: 'Tuiles raster XYZ',
+      endpoint: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer',
+      millesime: 'Continu',
+      format: 'PNG',
+      crs: 'EPSG:3857',
+      frequence: 'Continue',
+      licence: 'Conditions Esri (attribution obligatoire) — à valider pour un usage en production',
+      note: 'Fond gris clair peu détaillé, sans libellés : conçu pour mettre en valeur les données et pour les exports.',
+    },
+  },
+  {
+    id: 'uni',
+    label: 'Uni',
     tiles: [],
     color: '#e5e7ea',
     attribution: '',
