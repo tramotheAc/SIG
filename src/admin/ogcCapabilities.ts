@@ -21,21 +21,37 @@ export function modernizeIgnUrl(url: string): { url: string; changed: boolean } 
 }
 
 const text = (el: Element | null | undefined) => el?.textContent?.trim() ?? '';
+/** Tous les éléments d'un nom local donné, quel que soit le préfixe d'espace de noms. */
+const all = (doc: Document | Element, name: string) => [...doc.getElementsByTagName('*')].filter((e) => e.localName === name);
+
+/** Diagnostic lisible quand un document ne contient pas de couche. */
+export function describeResponse(xml: string): string {
+  const doc = new DOMParser().parseFromString(xml, 'text/xml');
+  const root = doc.documentElement?.localName ?? '?';
+  if (root === 'parsererror' || doc.getElementsByTagName('parsererror').length) {
+    const snippet = xml.replace(/\s+/g, ' ').slice(0, 160);
+    return `La réponse n’est pas du XML (page de proxy ou d’erreur ?) : « ${snippet}… »`;
+  }
+  if (/Exception/i.test(root)) return `Le service renvoie une erreur : ${text(all(doc, 'ExceptionText')[0] ?? all(doc, 'ServiceException')[0] ?? doc.documentElement).slice(0, 200)}`;
+  return `Document « ${root} » reçu, sans couche lisible. Vérifiez le type choisi (WMTS / WMS) et l’adresse.`;
+}
 const child = (el: Element, name: string) => [...el.children].find((c) => c.localName === name);
 const children = (el: Element, name: string) => [...el.children].filter((c) => c.localName === name);
 
 function baseUrl(capsUrl: string, doc: Document, service: 'WMTS' | 'WMS'): string {
   // URL de requête annoncée par le service (Operation GetTile / GetMap), sinon celle des capabilities.
-  const op = [...doc.getElementsByTagNameNS('*', 'Operation')].find((o) => o.getAttribute('name') === (service === 'WMTS' ? 'GetTile' : 'GetMap'));
-  const href = op?.getElementsByTagNameNS('*', 'Get')[0]?.getAttributeNS('http://www.w3.org/1999/xlink', 'href') ?? '';
-  const fromDoc = service === 'WMS' ? ([...doc.getElementsByTagName('GetMap')][0]?.getElementsByTagName('OnlineResource')[0]?.getAttributeNS('http://www.w3.org/1999/xlink', 'href') ?? '') : '';
+  const xhref = (e?: Element) => e?.getAttribute('xlink:href') ?? e?.getAttributeNS('http://www.w3.org/1999/xlink', 'href') ?? '';
+  const op = all(doc, 'Operation').find((o) => o.getAttribute('name') === (service === 'WMTS' ? 'GetTile' : 'GetMap'));
+  const href = op ? xhref(all(op, 'Get')[0]) : '';
+  const getMap = all(doc, 'GetMap')[0];
+  const fromDoc = service === 'WMS' && getMap ? xhref(all(getMap, 'OnlineResource')[0]) : '';
   return (href || fromDoc || capsUrl).split('?')[0];
 }
 
 export function parseWmts(xml: string, capsUrl: string): OgcLayer[] {
   const doc = new DOMParser().parseFromString(xml, 'text/xml');
   const base = baseUrl(capsUrl, doc, 'WMTS');
-  const contents = doc.getElementsByTagNameNS('*', 'Contents')[0];
+  const contents = all(doc, 'Contents')[0];
   if (!contents) return [];
   // Jeux de tuilage Web Mercator disponibles
   const sets = new Map<string, string>();
@@ -76,7 +92,7 @@ export function parseWms(xml: string, capsUrl: string): OgcLayer[] {
   const version = doc.documentElement.getAttribute('version') ?? '1.3.0';
   const crsParam = version.startsWith('1.3') ? 'CRS' : 'SRS';
   const out: OgcLayer[] = [];
-  for (const layer of [...doc.getElementsByTagNameNS('*', 'Layer')]) {
+  for (const layer of all(doc, 'Layer')) {
     const name = text(child(layer, 'Name'));
     if (!name) continue;
     const title = text(child(layer, 'Title')) || name;

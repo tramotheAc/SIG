@@ -26,7 +26,7 @@ import {
 import type { SourceMeta } from '../config/layers.config';
 import { COLOR_BY_OPTIONS } from '../domain/symbology';
 import { DataSourcePanel } from '../ui/DataSourcePanel';
-import { modernizeIgnUrl, parseWms, parseWmts, type OgcLayer } from './ogcCapabilities';
+import { describeResponse, modernizeIgnUrl, parseWms, parseWmts, type OgcLayer } from './ogcCapabilities';
 import type { CustomLayer } from '../config/siteConfig';
 import { DabDataProvider, discoverEntities } from '../data/api/DabDataProvider';
 import { loadData } from '../store/bootstrap';
@@ -793,13 +793,22 @@ function CustomLayerCard({ layer: c, set, onDelete }: { layer: CustomLayer; set:
     setCaps({ status: 'loading' });
     try {
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        setCaps({ status: 'ko', msg: `Le service répond « HTTP ${res.status} » : adresse incorrecte ou service indisponible.` });
+        return;
+      }
       const xml = await res.text();
-      const layers = c.type === 'wmts' ? parseWmts(xml, url) : parseWms(xml, url);
+      // Type détecté d'après le document (évite l'erreur « WMTS » choisi pour une adresse WMS et inversement).
+      const isWmts = /<(\w+:)?Capabilities[\s>]/.test(xml) && /wmts/i.test(xml.slice(0, 2000));
+      const detected: 'wmts' | 'wms' = isWmts ? 'wmts' : /WMS_Capabilities|WMT_MS_Capabilities/.test(xml.slice(0, 3000)) ? 'wms' : c.type === 'wms' ? 'wms' : 'wmts';
+      if (detected !== c.type) set((x) => void (x.type = detected));
+      const layers = detected === 'wmts' ? parseWmts(xml, url) : parseWms(xml, url);
       setCaps({
         status: layers.length ? 'ok' : 'ko',
         layers,
-        msg: `${changed ? 'Ancienne adresse wxs.ign.fr remplacée par la Géoplateforme. ' : ''}${layers.length} couche(s) trouvée(s).`,
+        msg: layers.length
+          ? `${changed ? 'Ancienne adresse wxs.ign.fr remplacée par la Géoplateforme. ' : ''}${detected !== c.type ? `Type corrigé en ${detected.toUpperCase()}. ` : ''}${layers.length} couche(s) trouvée(s).`
+          : describeResponse(xml),
       });
     } catch {
       setCaps({ status: 'ko', msg: 'GetCapabilities inaccessible depuis le navigateur (URL, réseau ou CORS).' });
