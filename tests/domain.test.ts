@@ -133,3 +133,17 @@ describe('Géométrie et référentiels', () => {
     expect([...abc]).toEqual([['44109', 'B1'], ['75056', 'Abis']]);
   });
 });
+
+describe('Référentiels fichiers tolérants', () => {
+  it('CSV Excel avec colonnes supplémentaires et en-tête', () => {
+    const csv = 'Code INSEE;Nom commune;Département;Zonage ABC 2024\r\n35238;Rennes;35;B1\r\n29019;Brest;29;B2\r\n';
+    expect([...parseZonageCsv(csv, normalizeAbc)]).toEqual([['35238', 'B1'], ['29019', 'B2']]);
+  });
+  it('reprojette un GeoJSON en Lambert-93', async () => {
+    const { normalizeGeoJson } = await import('../src/data/referentiels/localFiles');
+    const fc = normalizeGeoJson({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[352000, 6789000], [353000, 6789000], [353000, 6790000], [352000, 6789000]]] } }] });
+    const [lon, lat] = (fc.features[0].geometry as { coordinates: number[][][] }).coordinates[0][0];
+    expect(lon).toBeCloseTo(-1.68, 1);
+    expect(lat).toBeCloseTo(48.11, 1);
+  });
+});

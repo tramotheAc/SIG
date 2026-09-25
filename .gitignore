@@ -5,3 +5,5 @@ dist
 public/referentiels/*.geojson
 public/referentiels/*.csv
 public/referentiels/*.json
+app-statique/referentiels/*.geojson
+app-statique/referentiels/*.csv
