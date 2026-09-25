@@ -1,0 +1,253 @@
+/**
+ * Configuration « site » éditable depuis la page d'administration.
+ *
+ * Le site est statique : la configuration publiée est un fichier `config/site.json` servi à côté
+ * de l'application. Ordre de priorité au démarrage :
+ *   1. brouillon enregistré dans CE navigateur par la page admin (prévisualisation) ;
+ *   2. `config/site.json` publié ;
+ *   3. valeurs par défaut du code (layers.config.ts, app.config.ts…).
+ *
+ * La configuration est appliquée AVANT le rendu de l'application (voir main.tsx) : les modules
+ * de configuration existants sont ajustés en place, les composants n'ont presque rien à connaître.
+ */
+import { appConfig } from './app.config';
+import { basemaps, referenceLayers, zonageFiles, type ReferenceLayerDef } from './layers.config';
+import { COLOR_BY_OPTIONS, type ColorBy } from '../domain/symbology';
+
+export type Control = 'opacity' | 'color' | 'width' | 'size' | 'labels';
+export type TabKey = 'patrimoine' | 'couches' | 'filtres' | 'analyse';
+export type FilterKey = 'agences' | 'communes' | 'epcis' | 'residences' | 'qpv' | 'apl' | 'pinel' | 'roles';
+
+export interface BasemapSetting {
+  id: string;
+  enabled: boolean;
+  label: string;
+  tiles: string[];
+}
+
+export interface LayerSetting {
+  id: string;
+  enabled: boolean;
+  label: string;
+  /** Source modifiable : URL GeoJSON (fichier ou API) ou modèle d'URL de tuiles. */
+  sourceType: 'geojson' | 'tuiles' | 'service';
+  url: string;
+  visible: boolean;
+  color: string;
+  opacity: number;
+  width: number;
+  size: number;
+  labels: boolean;
+  /** Réglages proposés à l'utilisateur. */
+  controls: Control[];
+  millesime: string;
+}
+
+export interface SiteConfig {
+  version: 1;
+  data: { excelUrl: string; label: string; synthetic: boolean };
+  basemaps: BasemapSetting[];
+  defaultBasemap: string;
+  layers: LayerSetting[];
+  ui: {
+    tabs: Record<TabKey, boolean>;
+    filters: Record<FilterKey, boolean>;
+    colorBy: ColorBy[];
+    defaultColorBy: ColorBy;
+    exportExcel: boolean;
+    exportImage: boolean;
+    searchBan: boolean;
+  };
+  services: { geoApi: string; geocodage: string; zonageApl: string; zonagePinel: string };
+}
+
+export const TAB_LABELS: Record<TabKey, string> = { patrimoine: 'Patrimoine', couches: 'Couches', filtres: 'Filtres', analyse: 'Analyse' };
+export const FILTER_LABELS: Record<FilterKey, string> = {
+  agences: 'Agence',
+  communes: 'Commune',
+  epcis: 'EPCI',
+  residences: 'Résidence',
+  qpv: 'QPV',
+  apl: 'Zone APL',
+  pinel: 'Zone Pinel',
+  roles: 'Responsables métier',
+};
+export const CONTROL_LABELS: Record<Control, string> = { opacity: 'Opacité', color: 'Couleur', width: 'Épaisseur', size: 'Taille', labels: 'Libellés' };
+
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
+
+function layerToSetting(l: ReferenceLayerDef): LayerSetting {
+  const k = l.kind;
+  return {
+    id: l.id,
+    enabled: true,
+    label: l.label,
+    sourceType: k.type === 'geojson-url' ? 'geojson' : k.type === 'raster' ? 'tuiles' : 'service',
+    url: k.type === 'geojson-url' ? k.url : k.type === 'raster' ? k.tiles[0] : '',
+    visible: false,
+    color: l.defaults.color,
+    opacity: l.defaults.opacity,
+    width: l.defaults.width ?? 1,
+    size: l.defaults.size ?? 4,
+    labels: l.defaults.labels ?? false,
+    controls: [...l.controls] as Control[],
+    millesime: l.meta.millesime,
+  };
+}
+
+/** Valeurs par défaut issues du code (capturées avant toute surcharge). */
+export const DEFAULT_SITE_CONFIG: SiteConfig = clone({
+  version: 1,
+  data: { excelUrl: appConfig.demoDataUrl, label: 'Jeu de démonstration (données synthétiques)', synthetic: true },
+  basemaps: basemaps.map((b) => ({ id: b.id, enabled: true, label: b.label, tiles: b.tiles })),
+  defaultBasemap: basemaps[0].id,
+  layers: referenceLayers.map(layerToSetting),
+  ui: {
+    tabs: { patrimoine: true, couches: true, filtres: true, analyse: true },
+    filters: { agences: true, communes: true, epcis: true, residences: true, qpv: true, apl: true, pinel: true, roles: true },
+    colorBy: COLOR_BY_OPTIONS.map((o) => o.key),
+    defaultColorBy: 'agence',
+    exportExcel: true,
+    exportImage: true,
+    searchBan: true,
+  },
+  services: {
+    geoApi: appConfig.services.geoApi,
+    geocodage: appConfig.services.geocodage,
+    zonageApl: zonageFiles.apl,
+    zonagePinel: zonageFiles.pinel,
+  },
+} satisfies SiteConfig);
+
+/** Catalogue complet (y compris éléments désactivés) pour la page admin. */
+export const CATALOG = {
+  basemaps: clone(basemaps.map((b) => ({ id: b.id, meta: b.meta }))),
+  layers: clone(referenceLayers.map((l) => ({ id: l.id, group: l.group, geometry: l.geometry, controls: l.controls, meta: l.meta }))),
+};
+
+/** Fusion tolérante : un site.json incomplet ou ancien ne casse jamais l'application. */
+export function mergeConfig(partial: Partial<SiteConfig> | undefined): SiteConfig {
+  const d = clone(DEFAULT_SITE_CONFIG);
+  if (!partial || typeof partial !== 'object') return d;
+  const byId = <T extends { id: string }>(defs: T[], over?: Partial<T>[]) =>
+    defs.map((x) => ({ ...x, ...(over?.find((o) => o?.id === x.id) ?? {}) }));
+  return {
+    version: 1,
+    data: { ...d.data, ...(partial.data ?? {}) },
+    basemaps: byId(d.basemaps, partial.basemaps),
+    defaultBasemap: partial.defaultBasemap ?? d.defaultBasemap,
+    layers: byId(d.layers, partial.layers),
+    ui: {
+      ...d.ui,
+      ...(partial.ui ?? {}),
+      tabs: { ...d.ui.tabs, ...(partial.ui?.tabs ?? {}) },
+      filters: { ...d.ui.filters, ...(partial.ui?.filters ?? {}) },
+      colorBy: (partial.ui?.colorBy ?? d.ui.colorBy).filter((k) => d.ui.colorBy.includes(k)),
+    },
+    services: { ...d.services, ...(partial.services ?? {}) },
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Chargement / brouillon                                              */
+/* ------------------------------------------------------------------ */
+
+const DRAFT_KEY = 'atlas.siteConfig.draft';
+export const SITE_JSON_URL = `${import.meta.env.BASE_URL}config/site.json`;
+
+export function readDraft(): Partial<SiteConfig> | undefined {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+export function saveDraft(cfg: SiteConfig) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(cfg));
+  } catch {
+    /* stockage indisponible : la prévisualisation ne sera pas conservée */
+  }
+}
+export function clearDraft() {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Configuration effective de la session. */
+export let siteConfig: SiteConfig = clone(DEFAULT_SITE_CONFIG);
+export let siteConfigOrigin: 'brouillon' | 'publiée' | 'défaut' = 'défaut';
+export let publishedConfig: SiteConfig = clone(DEFAULT_SITE_CONFIG);
+
+export async function loadSiteConfig(): Promise<SiteConfig> {
+  let published: Partial<SiteConfig> | undefined;
+  try {
+    const res = await fetch(SITE_JSON_URL, { cache: 'no-cache' });
+    if (res.ok && !(res.headers.get('content-type') ?? '').includes('text/html')) published = await res.json();
+  } catch {
+    /* pas de site.json : valeurs par défaut */
+  }
+  publishedConfig = mergeConfig(published);
+  const draft = readDraft();
+  siteConfig = draft ? mergeConfig(draft) : publishedConfig;
+  siteConfigOrigin = draft ? 'brouillon' : published ? 'publiée' : 'défaut';
+  applySiteConfig(siteConfig);
+  return siteConfig;
+}
+
+/** Applique la configuration aux modules de configuration (avant création du store). */
+export function applySiteConfig(cfg: SiteConfig) {
+  // Services
+  const services = appConfig.services as { geoApi: string; geocodage: string };
+  services.geoApi = cfg.services.geoApi;
+  services.geocodage = cfg.services.geocodage;
+  zonageFiles.apl = cfg.services.zonageApl;
+  zonageFiles.pinel = cfg.services.zonagePinel;
+
+  // Fonds de carte : filtrage + surcharge, fond par défaut en tête.
+  const bm = [...basemaps];
+  basemaps.length = 0;
+  for (const s of cfg.basemaps) {
+    const def = bm.find((b) => b.id === s.id);
+    if (!def || !s.enabled) continue;
+    basemaps.push({ ...def, label: s.label || def.label, tiles: s.tiles?.length || !def.tiles.length ? s.tiles : def.tiles });
+  }
+  if (!basemaps.length) basemaps.push(bm[0]);
+  const i = basemaps.findIndex((b) => b.id === cfg.defaultBasemap);
+  if (i > 0) basemaps.unshift(...basemaps.splice(i, 1));
+
+  // Couches de référence
+  const layers = [...referenceLayers];
+  referenceLayers.length = 0;
+  for (const s of cfg.layers) {
+    const def = layers.find((l) => l.id === s.id);
+    if (!def || !s.enabled) continue;
+    const kind =
+      def.kind.type === 'geojson-url' && s.url
+        ? { ...def.kind, url: s.url }
+        : def.kind.type === 'raster' && s.url
+          ? { ...def.kind, tiles: [s.url] }
+          : def.kind;
+    referenceLayers.push({
+      ...def,
+      label: s.label || def.label,
+      kind,
+      controls: s.controls,
+      defaults: { ...def.defaults, color: s.color, opacity: s.opacity, width: s.width, size: s.size, labels: s.labels },
+      meta: { ...def.meta, millesime: s.millesime || def.meta.millesime, endpoint: s.url || def.meta.endpoint },
+    });
+  }
+}
+
+export function downloadJson(cfg: SiteConfig) {
+  const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'site.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}

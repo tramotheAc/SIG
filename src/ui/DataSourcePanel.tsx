@@ -6,32 +6,21 @@ import { useAppStore } from '../store/useAppStore';
 import { Icon } from './components/Icon';
 import { fmt } from './components/controls';
 
-/** Source de données : état du jeu chargé, rapport de contrôle, import d'un nouveau fichier. */
-export function ImportDialog() {
-  const show = useAppStore((s) => s.showImport);
-  const set = useAppStore((s) => s.set);
+/** Source de données (page admin) : état du jeu chargé, rapport de contrôle, import d'un nouveau fichier. */
+export function DataSourcePanel() {
   const dataset = useAppStore((s) => s.dataset);
   const status = useAppStore((s) => s.status);
   const progress = useAppStore((s) => s.progress);
   const error = useAppStore((s) => s.error);
   const input = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
-  if (!show) return null;
-
   const onFile = (f?: File) => {
     if (!f) return;
     void loadData(ExcelDataProvider.fromFile(f));
   };
-  const close = () => set({ showImport: false });
 
   return (
-    <div className="dialog-backdrop" onClick={close}>
-      <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="import-title" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && close()}>
-        <header className="dialog-head">
-          <h2 id="import-title">Source de données</h2>
-          <button type="button" className="icon-btn" onClick={close} aria-label="Fermer"><Icon name="close" /></button>
-        </header>
-        <div className="dialog-body">
+    <>
           {dataset && (
             <div className="source-card">
               <div className="source-title">
@@ -100,11 +89,9 @@ export function ImportDialog() {
               <li><strong>{excelMapping.affectations.sheets[0]}</strong> (facultatif) : Code_patrimoine, Conseiller_commercial, Gerant_immobilier, Travailleur_social</li>
             </ul>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => void loadData(ExcelDataProvider.demo())}>
-              Recharger le jeu de démonstration
+              Recharger la source configurée
             </button>
           </details>
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

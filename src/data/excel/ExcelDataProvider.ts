@@ -1,4 +1,5 @@
 import { appConfig } from '../../config/app.config';
+import { siteConfig } from '../../config/siteConfig';
 import type { PatrimoineDataset } from '../../domain/model';
 import { DataSourceError, type DataProvider, type LoadOptions } from '../DataProvider';
 import type { WorkerResponse } from './excel.worker';
@@ -23,9 +24,9 @@ export class ExcelDataProvider implements DataProvider {
   static demo() {
     return new ExcelDataProvider({
       kind: 'url',
-      url: appConfig.demoDataUrl,
-      label: 'Jeu de démonstration (données synthétiques)',
-      synthetic: true,
+      url: siteConfig.data.excelUrl,
+      label: siteConfig.data.label,
+      synthetic: siteConfig.data.synthetic,
     });
   }
 

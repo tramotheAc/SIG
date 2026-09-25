@@ -15,7 +15,6 @@ export function MapOverlays() {
   const zoom = useAppStore((s) => s.zoom);
   const rep = useAppStore((s) => s.patrimoine.representation);
   const visible = useAppStore((s) => s.patrimoine.visible);
-  const set = useAppStore((s) => s.set);
   const [legendOpen, setLegendOpen] = useState(true);
   const level = levelForZoom(zoom, rep);
 
@@ -25,7 +24,6 @@ export function MapOverlays() {
         {dataset?.source.synthetic && (
           <div className="banner-synthetic" role="note">
             <Icon name="warning" size={14} /> Données de démonstration <strong>synthétiques</strong> — aucun patrimoine réel.
-            <button type="button" className="link-btn" onClick={() => set({ showImport: true })}>Importer un fichier</button>
           </div>
         )}
         <ActiveFilters />
@@ -54,7 +52,7 @@ export function MapOverlays() {
         <div className="loading-overlay" role="alert">
           <Icon name="warning" size={28} />
           <div><strong>{error?.message ?? 'Chargement impossible.'}</strong></div>
-          <button type="button" className="btn btn-primary" onClick={() => set({ showImport: true })}>Importer un fichier Excel</button>
+          <a className="btn btn-primary" href="#/admin">Configurer la source de données (administration)</a>
         </div>
       )}
       <Toast />

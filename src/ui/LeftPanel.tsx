@@ -1,22 +1,25 @@
 import { activeFilterCount } from '../domain/patrimoineIndex';
 import { useAppStore, type LeftTab } from '../store/useAppStore';
+import { siteConfig } from '../config/siteConfig';
 import { Icon } from './components/Icon';
 import { AnalysePanel } from './panels/AnalysePanel';
 import { FiltersPanel } from './panels/FiltersPanel';
 import { LayersPanel } from './panels/LayersPanel';
 import { PatrimoinePanel } from './panels/PatrimoinePanel';
 
-const TABS: { id: LeftTab; label: string; icon: string }[] = [
+const ALL_TABS: { id: LeftTab; label: string; icon: string }[] = [
   { id: 'patrimoine', label: 'Patrimoine', icon: 'building' },
   { id: 'couches', label: 'Couches', icon: 'layers' },
   { id: 'filtres', label: 'Filtres', icon: 'filter' },
   { id: 'analyse', label: 'Analyse', icon: 'chart' },
 ];
+const TABS = ALL_TABS.filter((t) => siteConfig.ui.tabs[t.id]);
 
 export function LeftPanel() {
   const tab = useAppStore((s) => s.leftTab);
   const open = useAppStore((s) => s.leftOpen);
   const set = useAppStore((s) => s.set);
+  if (!TABS.length) return null;
   const nFilters = useAppStore((s) => activeFilterCount(s.filters));
   return (
     <nav className={`left ${open ? '' : 'is-collapsed'}`} aria-label="Panneau de navigation">

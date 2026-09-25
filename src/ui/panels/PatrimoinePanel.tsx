@@ -1,4 +1,7 @@
-import { COLOR_BY_OPTIONS, type ColorBy } from '../../domain/symbology';
+import { COLOR_BY_OPTIONS as ALL_COLOR_BY, type ColorBy } from '../../domain/symbology';
+import { siteConfig } from '../../config/siteConfig';
+
+const COLOR_BY_OPTIONS = ALL_COLOR_BY.filter((o) => siteConfig.ui.colorBy.includes(o.key));
 import { levelForZoom } from '../../map/patrimoineLayers';
 import { useAppStore, type Representation } from '../../store/useAppStore';
 import { useFilteredView } from '../../store/useFilteredView';

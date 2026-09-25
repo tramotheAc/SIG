@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { appConfig } from '../config/app.config';
+import { siteConfig } from '../config/siteConfig';
 import { geocode } from '../data/referentiels/geocodage';
 import { SEARCH_GROUPS, type SearchResult } from '../domain/search';
 import { selectAndZoom } from '../store/navigation';
@@ -22,7 +23,7 @@ export function SearchBox() {
   useEffect(() => {
     const query = q.trim();
     latest.current = query;
-    if (query.length < 3) {
+    if (query.length < 3 || !siteConfig.ui.searchBan) {
       setBan({ q: query, results: [], status: 'idle' });
       return;
     }

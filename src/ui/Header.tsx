@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { appConfig } from '../config/app.config';
+import { siteConfig } from '../config/siteConfig';
 import { exportExcel } from '../export/excelExport';
 import { exportImage } from '../export/imageExport';
 import { useAppStore } from '../store/useAppStore';
@@ -8,8 +9,6 @@ import { Icon } from './components/Icon';
 import { SearchBox } from './SearchBox';
 
 export function Header() {
-  const dataset = useAppStore((s) => s.dataset);
-  const set = useAppStore((s) => s.set);
   const notify = useAppStore((s) => s.notify);
   const view = useFilteredView();
   const [menu, setMenu] = useState(false);
@@ -40,37 +39,34 @@ export function Header() {
       </div>
       <SearchBox />
       <div className="header-actions">
-        <button type="button" className="btn btn-ghost" onClick={() => set({ showImport: true })} title="Source de données et import Excel">
-          <Icon name="database" />
-          <span className="hide-sm">{dataset?.source.synthetic ? 'Données de démo' : 'Données'}</span>
-        </button>
-        <div className="menu-wrap">
+        {(siteConfig.ui.exportExcel || siteConfig.ui.exportImage) && <div className="menu-wrap">
           <button type="button" className="btn btn-primary" aria-haspopup="menu" aria-expanded={menu} disabled={!view || busy} onClick={() => setMenu(!menu)}>
             <Icon name="download" />
             <span className="hide-sm">{busy ? 'Export…' : 'Exporter'}</span>
           </button>
           {menu && view && (
             <div className="menu" role="menu" onMouseLeave={() => setMenu(false)}>
-              <button type="button" role="menuitem" onClick={() => run(() => exportExcel(view), 'Fichier Excel généré.')}>
+              {siteConfig.ui.exportExcel && <button type="button" role="menuitem" onClick={() => run(() => exportExcel(view), 'Fichier Excel généré.')}>
                 <Icon name="table" />
                 <span>
                   Données filtrées (Excel)
                   <small>{view.totals.residences.toLocaleString('fr-FR')} résidences · {view.totals.logements.toLocaleString('fr-FR')} logements</small>
                 </span>
-              </button>
-              <button type="button" role="menuitem" onClick={() => run(() => exportImage(view), 'Image de la carte générée.')}>
+              </button>}
+              {siteConfig.ui.exportImage && <button type="button" role="menuitem" onClick={() => run(() => exportImage(view), 'Image de la carte générée.')}>
                 <Icon name="image" />
                 <span>
                   Carte + légende (PNG)
                   <small>Vue actuelle, avec titre et légende</small>
                 </span>
-              </button>
+              </button>}
             </div>
           )}
-        </div>
-        <div className="avatar" title="Profil (authentification hors périmètre du POC)" aria-label="Profil utilisateur">
-          <Icon name="user" size={16} />
-        </div>
+        </div>}
+        <a className="avatar" href="#/admin" title="Administration (experts)" aria-label="Administration" 
+        >
+          <Icon name="sliders" size={16} />
+        </a>
       </div>
     </header>
   );

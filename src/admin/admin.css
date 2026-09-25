@@ -1,0 +1,49 @@
+/* Page d'administration — mêmes jetons (charte Aiguillon) que la carte. */
+.admin { display: grid; grid-template-columns: 250px 1fr; height: 100%; background: var(--fond); }
+.admin-rail { background-color: var(--nuit); background-image: var(--fond-rail); background-size: 100% 100%; color: #fff; display: flex; flex-direction: column; gap: 18px; padding: 18px 10px; overflow-y: auto; }
+.admin-brand { display: flex; gap: 10px; align-items: center; padding: 0 6px; }
+.admin-brand-name { font-weight: 700; font-size: 15px; }
+.admin-brand-sub { font-size: 11px; color: #d7e2f2; font-weight: 600; }
+.admin-rail nav { display: flex; flex-direction: column; gap: 2px; }
+.admin-nav { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 0; background: none; color: #d7e2f2; border-radius: var(--radius-sm); text-align: left; font-weight: 600; text-decoration: none; font-size: 14px; }
+.admin-nav:hover { background: rgb(255 255 255 / 12%); color: #fff; }
+.admin-nav.is-active { background: rgb(255 255 255 / 20%); color: #fff; box-shadow: inset 3px 0 0 var(--blue-300); }
+.admin-back { margin-top: auto; }
+.admin-main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.admin-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 18px 28px 14px; background: var(--surface); border-bottom: 1px solid var(--bord); }
+.admin-head h1 { font-size: 20px; color: var(--encre); }
+.admin-head p { margin: 2px 0 0; font-size: 13px; }
+.admin-head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.admin-body { overflow-y: auto; padding: 20px 28px 48px; display: flex; flex-direction: column; gap: 14px; max-width: 1100px; }
+.admin-card { background: var(--surface); border: 1px solid var(--bord); border-radius: var(--radius-md); box-shadow: var(--ombre); }
+.admin-card.is-muted { box-shadow: none; background: var(--surface-2); }
+.admin-card.is-muted .admin-card-head h2 { color: var(--encre-tres-doux); }
+.admin-card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px; }
+.admin-card-head h2 { font-size: 15px; }
+.admin-card-body { padding: 0 18px 16px; display: flex; flex-direction: column; gap: 12px; }
+.admin-title-row { display: inline-flex; align-items: center; gap: 10px; }
+.admin-title-row .toggle { flex: none; }
+.admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px 18px; align-items: end; }
+.admin-field { display: flex; flex-direction: column; gap: 5px; }
+.admin-field.is-wide, .admin-grid .is-wide { grid-column: 1 / -1; }
+.admin-field-label { font-size: 12.5px; font-weight: 600; color: var(--encre-doux); }
+.admin-field input[type='range'] { accent-color: var(--accent); }
+.admin-hint { font-size: 12.5px; color: var(--encre-tres-doux); margin: 0; }
+.admin-inline { display: flex; gap: 8px; align-items: center; }
+.admin-inline .input { flex: 1; min-width: 0; }
+.admin-test { display: inline-flex; align-items: center; gap: 8px; flex: none; font-size: 12.5px; }
+.admin-ok { color: var(--vert); display: inline-flex; gap: 4px; align-items: center; }
+.admin-ko { color: var(--rouge); display: inline-flex; gap: 4px; align-items: center; max-width: 260px; }
+.admin-sub { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--encre-doux); border-top: 1px solid var(--bord); padding-top: 10px; }
+.admin-checks { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.admin-checks .chip-toggle input { accent-color: var(--accent); }
+.admin-checks .toggle { flex: 0 0 auto; }
+.admin-radio { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--encre-doux); }
+.admin-meta summary { cursor: pointer; font-size: 12.5px; color: var(--accent); font-weight: 600; }
+.admin-meta .meta-card { margin: 8px 0 0; }
+.admin-group { display: flex; flex-direction: column; gap: 10px; }
+.admin-group-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--encre-doux); margin: 8px 0 0; }
+.admin-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.admin-datasource { display: flex; flex-direction: column; gap: 14px; }
+.admin code { font-family: var(--font-mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+@media (max-width: 900px) { .admin { grid-template-columns: 1fr; } .admin-rail { flex-direction: row; overflow-x: auto; } .admin-rail nav { flex-direction: row; } }

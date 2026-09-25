@@ -3,6 +3,7 @@
  */
 import { create } from 'zustand';
 import { basemaps, referenceLayers } from '../config/layers.config';
+import { siteConfig } from '../config/siteConfig';
 import type { PatrimoineIndex, Filters } from '../domain/patrimoineIndex';
 import { EMPTY_FILTERS } from '../domain/patrimoineIndex';
 import type { EntityRef, GeoPoint, PatrimoineDataset, RoleKey } from '../domain/model';
@@ -100,7 +101,7 @@ const initialLayers: Record<string, LayerState> = Object.fromEntries(
   referenceLayers.map((l) => [
     l.id,
     {
-      visible: false,
+      visible: siteConfig.layers.find((s) => s.id === l.id)?.visible ?? false,
       opacity: l.defaults.opacity,
       color: l.defaults.color,
       width: l.defaults.width ?? 1,
@@ -122,7 +123,7 @@ export const useAppStore = create<State & Actions>((set, get) => ({
   patrimoine: {
     visible: true,
     opacity: 0.9,
-    colorBy: 'agence',
+    colorBy: siteConfig.ui.colorBy.includes(siteConfig.ui.defaultColorBy) ? siteConfig.ui.defaultColorBy : (siteConfig.ui.colorBy[0] ?? 'agence'),
     sizeMode: 'logements',
     sizeScale: 1,
     representation: 'auto',
@@ -130,7 +131,7 @@ export const useAppStore = create<State & Actions>((set, get) => ({
     labels: true,
   },
   filters: EMPTY_FILTERS,
-  leftTab: 'patrimoine',
+  leftTab: ((Object.keys(siteConfig.ui.tabs) as LeftTab[]).find((t) => siteConfig.ui.tabs[t]) ?? 'patrimoine'),
   leftOpen: true,
   showImport: false,
   zoom: 7,

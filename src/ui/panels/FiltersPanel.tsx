@@ -1,6 +1,9 @@
 import type { RoleKey } from '../../domain/model';
 import { activeFilterCount } from '../../domain/patrimoineIndex';
 import { useAppStore } from '../../store/useAppStore';
+import { siteConfig } from '../../config/siteConfig';
+
+const F = siteConfig.ui.filters;
 import { useFilteredView } from '../../store/useFilteredView';
 import { Icon } from '../components/Icon';
 import { MultiSelect, Section, fmt, type Option } from '../components/controls';
@@ -28,24 +31,24 @@ export function FiltersPanel() {
         </button>
       </div>
 
-      <Section title="Organisation">
+      {F.agences && <Section title="Organisation">
         <MultiSelect label="Agence" options={opts.agences} value={filters.agences} onChange={(v) => setFilters({ agences: v })} />
-      </Section>
-      <Section title="Territoire">
-        <MultiSelect label="Commune" options={opts.communes} value={filters.communes} onChange={(v) => setFilters({ communes: v })} />
-        <MultiSelect label="EPCI" options={opts.epcis} value={filters.epcis} onChange={(v) => setFilters({ epcis: v })} placeholder={opts.epcis.length ? 'Rechercher…' : 'Référentiel EPCI non chargé'} />
-        <MultiSelect label="Résidence" options={opts.residences} value={filters.residences} onChange={(v) => setFilters({ residences: v })} />
-      </Section>
-      <Section title="Géographie prioritaire et zonages">
-        <ChipGroup label="QPV" options={opts.qpv} value={filters.qpv} onChange={(v) => setFilters({ qpv: v as typeof filters.qpv })} disabled={layers.qpv.status === 'unavailable' || layers.qpv.status === 'error'} disabledText="Référentiel QPV non disponible." />
-        <ChipGroup label="Zone APL" options={opts.apl} value={filters.zonesApl} onChange={(v) => setFilters({ zonesApl: v })} disabled={opts.apl.length <= 1} disabledText="Table de zonage APL non disponible." />
-        <ChipGroup label="Zone Pinel (ABC)" options={opts.pinel} value={filters.zonesPinel} onChange={(v) => setFilters({ zonesPinel: v })} disabled={opts.pinel.length <= 1} disabledText="Table de zonage ABC non disponible." />
-      </Section>
-      <Section title="Responsables métier" defaultOpen={false}>
+      </Section>}
+      {(F.communes || F.epcis || F.residences) && <Section title="Territoire">
+        {F.communes && <MultiSelect label="Commune" options={opts.communes} value={filters.communes} onChange={(v) => setFilters({ communes: v })} />}
+        {F.epcis && <MultiSelect label="EPCI" options={opts.epcis} value={filters.epcis} onChange={(v) => setFilters({ epcis: v })} placeholder={opts.epcis.length ? 'Rechercher…' : 'Référentiel EPCI non chargé'} />}
+        {F.residences && <MultiSelect label="Résidence" options={opts.residences} value={filters.residences} onChange={(v) => setFilters({ residences: v })} />}
+      </Section>}
+      {(F.qpv || F.apl || F.pinel) && <Section title="Géographie prioritaire et zonages">
+        {F.qpv && <ChipGroup label="QPV" options={opts.qpv} value={filters.qpv} onChange={(v) => setFilters({ qpv: v as typeof filters.qpv })} disabled={layers.qpv.status === 'unavailable' || layers.qpv.status === 'error'} disabledText="Référentiel QPV non disponible." />}
+        {F.apl && <ChipGroup label="Zone APL" options={opts.apl} value={filters.zonesApl} onChange={(v) => setFilters({ zonesApl: v })} disabled={opts.apl.length <= 1} disabledText="Table de zonage APL non disponible." />}
+        {F.pinel && <ChipGroup label="Zone Pinel (ABC)" options={opts.pinel} value={filters.zonesPinel} onChange={(v) => setFilters({ zonesPinel: v })} disabled={opts.pinel.length <= 1} disabledText="Table de zonage ABC non disponible." />}
+      </Section>}
+      {F.roles && <Section title="Responsables métier" defaultOpen={false}>
         {(Object.keys(ROLE_LABELS) as RoleKey[]).map((k) => (
           <MultiSelect key={k} label={ROLE_LABELS[k]} options={opts.roles[k] ?? []} value={filters.roles[k] ?? []} onChange={(v) => setRoleFilter(k, v)} />
         ))}
-      </Section>
+      </Section>}
     </div>
   );
 }

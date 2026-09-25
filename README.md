@@ -140,3 +140,15 @@ tests/               Tests unitaires
 Le dossier `app-statique/` contient l'application déjà construite. Dans VS Code, installez
 l'extension **Live Server** (Ritwick Dey), puis clic droit sur `app-statique/index.html` →
 **Open with Live Server**. Ne pas ouvrir le fichier par double-clic (`file://` est bloqué par le navigateur).
+
+## Administration (experts)
+
+Page `#/admin` (icône de réglages en haut à droite) : source de données Excel, fonds de carte,
+couches (activation, source fichier/API, style par défaut, réglages laissés aux utilisateurs,
+affichage au démarrage), onglets, filtres, critères de couleur, exports, URLs des services.
+
+Le site étant statique, la configuration est un fichier **`config/site.json`** :
+« Prévisualiser » l'enregistre en brouillon dans le navigateur de l'administrateur ;
+« Télécharger site.json » puis dépôt dans `public/config/` (ou `app-statique/config/`) la publie
+pour tous. Sans fichier, les valeurs par défaut du code s'appliquent. L'accès à `#/admin` doit être
+restreint par le serveur web / SSO au déploiement.
