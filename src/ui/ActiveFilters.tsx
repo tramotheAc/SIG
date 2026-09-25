@@ -18,7 +18,7 @@ export function ActiveFilters() {
 
   const lab = (v: string, f: (x: string) => string | undefined) => (v === MISSING ? 'Non renseigné' : (f(v) ?? v));
   const chips: { key: string; label: string; remove: () => void }[] = [];
-  const add = <K extends Exclude<keyof Filters, 'roles'>>(key: K, title: string, f: (x: string) => string | undefined) => {
+  const add = <K extends Exclude<keyof Filters, 'roles' | 'departements'>>(key: K, title: string, f: (x: string) => string | undefined) => {
     for (const v of filters[key] as string[]) {
       chips.push({ key: `${key}-${v}`, label: `${title} : ${lab(v, f)}`, remove: () => setFilters({ [key]: (filters[key] as string[]).filter((x) => x !== v) } as Partial<Filters>) });
     }
@@ -27,6 +27,7 @@ export function ActiveFilters() {
   add('communes', 'Commune', (v) => index.communes.get(v)?.nom);
   add('epcis', 'EPCI', (v) => [...index.communes.values()].find((c) => c.epciCode === v)?.epciNom);
   add('residences', 'Résidence', (v) => index.residences.get(v)?.nom);
+  for (const d of filters.departements ?? []) chips.push({ key: `dep-${d}`, label: `Département : ${d}`, remove: () => setFilters({ departements: (filters.departements ?? []).filter((x) => x !== d) }) });
   add('qpv', 'QPV', (v) => QPV_LABELS[v as keyof typeof QPV_LABELS]);
   add('zonesApl', 'APL', (v) => `zone ${v}`);
   add('zonesPinel', 'Pinel', (v) => `zone ${v}`);

@@ -152,3 +152,11 @@ Le site étant statique, la configuration est un fichier **`config/site.json`** 
 « Télécharger site.json » puis dépôt dans `public/config/` (ou `app-statique/config/`) la publie
 pour tous. Sans fichier, les valeurs par défaut du code s'appliquent. L'accès à `#/admin` doit être
 restreint par le serveur web / SSO au déploiement.
+
+### Exports types
+
+Modèles définis en administration (section « Exports types ») : types de zone proposés
+(résidence, commune, EPCI, département, agence), fond, couches, symbologie, représentation,
+taille des éléments, libellés, format (A4, 16:9…), résolution, marge et zoom maximal.
+Côté utilisateur, bouton « Exports types » : modèle → zone → carte dynamique cadrée, image PNG
+(rendue hors écran à la taille du modèle, indépendamment de l'écran), ou les deux.

@@ -351,3 +351,16 @@ h1, h2, h3 { margin: 0; }
   * { animation: none !important; transition: none !important; }
 }
 .app-header a.avatar { color: #fff; }
+
+/* Exports types */
+.dialog-wide { width: min(760px, 100%); }
+.tpl-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.tpl-card { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.tpl-card:hover { border-color: var(--border-strong); }
+.tpl-card.is-active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--brand-50); }
+.tpl-meta { color: var(--accent); font-weight: 600; }
+.tpl-zones { list-style: none; margin: 0; padding: 4px; max-height: 220px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.tpl-zones button { display: flex; gap: 8px; width: 100%; border: 0; background: none; padding: 6px 8px; border-radius: 5px; text-align: left; }
+.tpl-zones button:hover { background: var(--surface-2); }
+.tpl-zones button.is-selected { background: var(--brand-50); color: var(--accent); font-weight: 600; }
+.tpl-actions { display: flex; justify-content: flex-end; }

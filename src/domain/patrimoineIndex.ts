@@ -27,6 +27,8 @@ export interface Filters {
   zonesApl: string[];
   zonesPinel: string[];
   roles: Partial<Record<RoleKey, string[]>>;
+  /** Codes département (2 premiers caractères du code INSEE). */
+  departements?: string[];
 }
 
 export const EMPTY_FILTERS: Filters = {
@@ -38,10 +40,12 @@ export const EMPTY_FILTERS: Filters = {
   zonesApl: [],
   zonesPinel: [],
   roles: {},
+  departements: [],
 };
 
 export function activeFilterCount(f: Filters): number {
   return (
+    (f.departements?.length ?? 0) +
     f.agences.length +
     f.communes.length +
     f.epcis.length +
@@ -166,6 +170,7 @@ export class PatrimoineIndex {
   private matches(obj: Residence | Batiment | Logement, f: Filters): boolean {
     if (f.agences.length && !f.agences.includes(obj.agenceId ?? MISSING)) return false;
     if (f.communes.length && !f.communes.includes(obj.communeInsee ?? MISSING)) return false;
+    if (f.departements?.length && !f.departements.includes((obj.communeInsee ?? '').slice(0, 2))) return false;
     if (f.epcis.length && !f.epcis.includes(this.epciOf(obj.communeInsee).code ?? MISSING)) return false;
     if (f.residences.length) {
       const resId = 'batimentIds' in obj ? obj.id : obj.residenceId;

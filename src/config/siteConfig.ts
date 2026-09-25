@@ -43,8 +43,49 @@ export interface LayerSetting {
   millesime: string;
 }
 
+export type ZoneType = 'residence' | 'commune' | 'epci' | 'departement' | 'agence';
+export type TemplateOutput = 'carte' | 'image' | 'les-deux';
+export type Representation = 'auto' | 'commune' | 'residence' | 'batiment' | 'logement';
+
+/** Modèle d'export (« export type ») défini par l'administrateur, utilisé par les utilisateurs. */
+export interface ExportTemplate {
+  id: string;
+  name: string;
+  description: string;
+  zoneTypes: ZoneType[];
+  /** Titre de l'image ; {zone} est remplacé par le nom de la zone. */
+  title: string;
+  basemap: string;
+  layers: string[];
+  colorBy: ColorBy;
+  sizeMode: 'fixe' | 'logements';
+  /** Facteur de taille des points (lisibilité à l'impression). */
+  sizeScale: number;
+  representation: Representation;
+  labels: boolean;
+  /** Ne montrer que le patrimoine de la zone choisie. */
+  restrictToZone: boolean;
+  /** Image : taille en pixels CSS et résolution (2 = qualité impression). */
+  width: number;
+  height: number;
+  pixelRatio: number;
+  /** Marge autour de la zone (px) et zoom maximal (évite de trop zoomer sur une petite résidence). */
+  padding: number;
+  maxZoom: number;
+  output: TemplateOutput;
+}
+
+export const ZONE_LABELS: Record<ZoneType, string> = {
+  residence: 'Résidence',
+  commune: 'Commune',
+  epci: 'EPCI',
+  departement: 'Département',
+  agence: 'Agence',
+};
+
 export interface SiteConfig {
   version: 1;
+  exportTemplates: ExportTemplate[];
   data: { excelUrl: string; label: string; synthetic: boolean };
   basemaps: BasemapSetting[];
   defaultBasemap: string;
@@ -56,6 +97,7 @@ export interface SiteConfig {
     defaultColorBy: ColorBy;
     exportExcel: boolean;
     exportImage: boolean;
+    exportTemplates: boolean;
     searchBan: boolean;
   };
   services: { geoApi: string; geocodage: string; zonageApl: string; zonagePinel: string };
@@ -96,8 +138,65 @@ function layerToSetting(l: ReferenceLayerDef): LayerSetting {
 }
 
 /** Valeurs par défaut issues du code (capturées avant toute surcharge). */
+const tpl = (t: Partial<ExportTemplate> & Pick<ExportTemplate, 'id' | 'name'>): ExportTemplate => ({
+  description: '',
+  zoneTypes: ['commune'],
+  title: '{zone}',
+  basemap: 'neutre',
+  layers: [],
+  colorBy: 'agence',
+  sizeMode: 'logements',
+  sizeScale: 1.2,
+  representation: 'residence',
+  labels: true,
+  restrictToZone: true,
+  width: 1600,
+  height: 1131,
+  pixelRatio: 2,
+  padding: 60,
+  maxZoom: 16,
+  output: 'les-deux',
+  ...t,
+});
+
+export const DEFAULT_EXPORT_TEMPLATES: ExportTemplate[] = [
+  tpl({
+    id: 'fiche-residence',
+    name: 'Plan de résidence',
+    description: 'Bâtiments d’une résidence sur plan, avec cadastre.',
+    zoneTypes: ['residence'],
+    title: 'Résidence {zone}',
+    basemap: 'plan-nb',
+    layers: ['cadastre'],
+    representation: 'batiment',
+    sizeScale: 1.6,
+    maxZoom: 18,
+    padding: 120,
+  }),
+  tpl({
+    id: 'patrimoine-commune',
+    name: 'Patrimoine d’une commune',
+    description: 'Résidences de la commune, contours communaux et QPV.',
+    zoneTypes: ['commune', 'epci'],
+    title: 'Patrimoine — {zone}',
+    layers: ['communes', 'qpv'],
+    maxZoom: 15,
+  }),
+  tpl({
+    id: 'carte-agence',
+    name: 'Territoire d’une agence',
+    description: 'Implantation d’une agence, par commune et EPCI.',
+    zoneTypes: ['agence', 'departement'],
+    title: '{zone}',
+    layers: ['departements', 'epci'],
+    representation: 'auto',
+    maxZoom: 12,
+  }),
+];
+
 export const DEFAULT_SITE_CONFIG: SiteConfig = clone({
   version: 1,
+  exportTemplates: DEFAULT_EXPORT_TEMPLATES,
   data: { excelUrl: appConfig.demoDataUrl, label: 'Jeu de démonstration (données synthétiques)', synthetic: true },
   basemaps: basemaps.map((b) => ({ id: b.id, enabled: true, label: b.label, tiles: b.tiles })),
   defaultBasemap: basemaps[0].id,
@@ -109,6 +208,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = clone({
     defaultColorBy: 'agence',
     exportExcel: true,
     exportImage: true,
+    exportTemplates: true,
     searchBan: true,
   },
   services: {
@@ -133,6 +233,7 @@ export function mergeConfig(partial: Partial<SiteConfig> | undefined): SiteConfi
     defs.map((x) => ({ ...x, ...(over?.find((o) => o?.id === x.id) ?? {}) }));
   return {
     version: 1,
+    exportTemplates: Array.isArray(partial.exportTemplates) ? partial.exportTemplates.map((t) => tpl({ ...t })) : d.exportTemplates,
     data: { ...d.data, ...(partial.data ?? {}) },
     basemaps: byId(d.basemaps, partial.basemaps),
     defaultBasemap: partial.defaultBasemap ?? d.defaultBasemap,

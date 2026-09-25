@@ -7,12 +7,14 @@ import { useAppStore } from '../store/useAppStore';
 import { useFilteredView } from '../store/useFilteredView';
 import { Icon } from './components/Icon';
 import { SearchBox } from './SearchBox';
+import { ExportTemplatesDialog } from './ExportTemplatesDialog';
 
 export function Header() {
   const notify = useAppStore((s) => s.notify);
   const view = useFilteredView();
   const [menu, setMenu] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [templates, setTemplates] = useState(false);
 
   const run = async (fn: () => Promise<void>, ok: string) => {
     setMenu(false);
@@ -39,6 +41,13 @@ export function Header() {
       </div>
       <SearchBox />
       <div className="header-actions">
+        {siteConfig.ui.exportTemplates && siteConfig.exportTemplates.length > 0 && (
+          <button type="button" className="btn btn-ghost" disabled={!view} onClick={() => setTemplates(true)} title="Cartes et images prêtes à l’emploi">
+            <Icon name="image" />
+            <span className="hide-sm">Exports types</span>
+          </button>
+        )}
+        {templates && <ExportTemplatesDialog onClose={() => setTemplates(false)} />}
         {(siteConfig.ui.exportExcel || siteConfig.ui.exportImage) && <div className="menu-wrap">
           <button type="button" className="btn btn-primary" aria-haspopup="menu" aria-expanded={menu} disabled={!view || busy} onClick={() => setMenu(!menu)}>
             <Icon name="download" />

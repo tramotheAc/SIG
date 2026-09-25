@@ -18,6 +18,10 @@ import {
   type LayerSetting,
   type SiteConfig,
   type TabKey,
+  type ExportTemplate,
+  type ZoneType,
+  type TemplateOutput,
+  ZONE_LABELS,
 } from '../config/siteConfig';
 import type { SourceMeta } from '../config/layers.config';
 import { COLOR_BY_OPTIONS } from '../domain/symbology';
@@ -26,11 +30,12 @@ import { Icon } from '../ui/components/Icon';
 import { MetaCard } from '../ui/panels/LayersPanel';
 import './admin.css';
 
-type Section = 'donnees' | 'fonds' | 'couches' | 'interface' | 'services' | 'publication';
+type Section = 'donnees' | 'fonds' | 'couches' | 'exports' | 'interface' | 'services' | 'publication';
 const SECTIONS: { id: Section; label: string; icon: string; help: string }[] = [
   { id: 'donnees', label: 'Données patrimoine', icon: 'database', help: 'Source Excel publiée, import et contrôle d’un fichier.' },
   { id: 'fonds', label: 'Fonds de carte', icon: 'image', help: 'Fonds proposés aux utilisateurs et fond par défaut.' },
   { id: 'couches', label: 'Couches', icon: 'layers', help: 'Sources (fichiers, API), style par défaut et réglages laissés aux utilisateurs.' },
+  { id: 'exports', label: 'Exports types', icon: 'image', help: 'Modèles de cartes et d’images proposés aux utilisateurs : zone, couches, symbologie, format, cadrage.' },
   { id: 'interface', label: 'Interface', icon: 'sliders', help: 'Onglets, filtres, critères de couleur, exports et recherche.' },
   { id: 'services', label: 'Services & API', icon: 'external', help: 'Adresses des API et des fichiers de référence.' },
   { id: 'publication', label: 'Publication', icon: 'upload', help: 'Prévisualiser, télécharger et publier la configuration.' },
@@ -111,6 +116,7 @@ export function AdminPage() {
           {section === 'donnees' && <DonneesSection cfg={cfg} update={update} />}
           {section === 'fonds' && <FondsSection cfg={cfg} update={update} />}
           {section === 'couches' && <CouchesSection cfg={cfg} update={update} />}
+          {section === 'exports' && <ExportsSection cfg={cfg} update={update} />}
           {section === 'interface' && <InterfaceSection cfg={cfg} update={update} />}
           {section === 'services' && <ServicesSection cfg={cfg} update={update} />}
           {section === 'publication' && <PublicationSection cfg={cfg} setCfg={setCfg} />}
@@ -410,6 +416,7 @@ function InterfaceSection({ cfg, update }: Props) {
         <div className="admin-checks">
           <Switch checked={cfg.ui.exportExcel} onChange={(v) => update((c) => void (c.ui.exportExcel = v))} label="Export Excel" />
           <Switch checked={cfg.ui.exportImage} onChange={(v) => update((c) => void (c.ui.exportImage = v))} label="Export image" />
+          <Switch checked={cfg.ui.exportTemplates} onChange={(v) => update((c) => void (c.ui.exportTemplates = v))} label="Exports types" />
           <Switch checked={cfg.ui.searchBan} onChange={(v) => update((c) => void (c.ui.searchBan = v))} label="Recherche d’adresses BAN" />
         </div>
       </Card>
@@ -483,5 +490,152 @@ function PublicationSection({ cfg, setCfg }: { cfg: SiteConfig; setCfg: (c: Site
         </p>
       </Card>
     </>
+  );
+}
+
+/* ------------------------------ Exports types ------------------------------ */
+
+const FORMATS: { label: string; w: number; h: number }[] = [
+  { label: 'A4 paysage', w: 1600, h: 1131 },
+  { label: 'A4 portrait', w: 1131, h: 1600 },
+  { label: '16:9 (diaporama)', w: 1920, h: 1080 },
+  { label: 'Carré', w: 1200, h: 1200 },
+];
+const REPRESENTATIONS = [
+  ['auto', 'Automatique (selon le zoom)'],
+  ['commune', 'Agrégats par commune'],
+  ['residence', 'Résidences'],
+  ['batiment', 'Bâtiments'],
+  ['logement', 'Logements'],
+] as const;
+
+function ExportsSection({ cfg, update }: Props) {
+  const add = (from?: ExportTemplate) =>
+    update((c) => {
+      const base = from ?? DEFAULT_SITE_CONFIG.exportTemplates[0] ?? c.exportTemplates[0];
+      c.exportTemplates.push({ ...structuredClone(base), id: `modele-${Date.now().toString(36)}`, name: from ? `${from.name} (copie)` : 'Nouveau modèle' });
+    });
+  return (
+    <>
+      {cfg.exportTemplates.map((t, i) => (
+        <TemplateCard
+          key={t.id}
+          t={t}
+          cfg={cfg}
+          set={(fn) => update((c) => fn(c.exportTemplates[i]))}
+          onDuplicate={() => add(t)}
+          onDelete={() => update((c) => void c.exportTemplates.splice(i, 1))}
+        />
+      ))}
+      <div>
+        <button type="button" className="btn btn-primary" onClick={() => add()}>+ Ajouter un modèle</button>
+      </div>
+    </>
+  );
+}
+
+function TemplateCard({ t, cfg, set, onDuplicate, onDelete }: { t: ExportTemplate; cfg: SiteConfig; set: (fn: (t: ExportTemplate) => void) => void; onDuplicate: () => void; onDelete: () => void }) {
+  const fmt = FORMATS.find((f) => f.w === t.width && f.h === t.height)?.label ?? 'Personnalisé';
+  const toggle = <T,>(arr: T[], v: T, on: boolean) => (on ? [...arr, v] : arr.filter((x) => x !== v));
+  return (
+    <Card
+      title={t.name}
+      right={
+        <span className="admin-checks">
+          <button type="button" className="btn btn-sm" onClick={onDuplicate}>Dupliquer</button>
+          <button type="button" className="btn btn-sm" onClick={onDelete}>Supprimer</button>
+        </span>
+      }
+    >
+      <div className="admin-grid">
+        <Field label="Nom"><input className="input" value={t.name} onChange={(e) => set((x) => void (x.name = e.target.value))} /></Field>
+        <Field label="Titre de l’image" hint="{zone} = nom de la zone choisie"><input className="input" value={t.title} onChange={(e) => set((x) => void (x.title = e.target.value))} /></Field>
+        <Field label="Description" wide><input className="input" value={t.description} onChange={(e) => set((x) => void (x.description = e.target.value))} /></Field>
+      </div>
+
+      <div className="admin-sub">Zones que l’utilisateur peut choisir</div>
+      <div className="admin-checks">
+        {(Object.keys(ZONE_LABELS) as ZoneType[]).map((z) => (
+          <label key={z} className="chip-toggle">
+            <input type="checkbox" checked={t.zoneTypes.includes(z)} onChange={(e) => set((x) => void (x.zoneTypes = toggle(x.zoneTypes, z, e.target.checked)))} />
+            {ZONE_LABELS[z]}
+          </label>
+        ))}
+        <Switch checked={t.restrictToZone} onChange={(v) => set((x) => void (x.restrictToZone = v))} label="Afficher uniquement le patrimoine de la zone" />
+      </div>
+
+      <div className="admin-sub">Contenu de la carte</div>
+      <div className="admin-grid">
+        <Field label="Fond de carte">
+          <select className="select" value={t.basemap} onChange={(e) => set((x) => void (x.basemap = e.target.value))}>
+            {cfg.basemaps.filter((b) => b.enabled).map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+          </select>
+        </Field>
+        <Field label="Représentation du patrimoine">
+          <select className="select" value={t.representation} onChange={(e) => set((x) => void (x.representation = e.target.value as ExportTemplate['representation']))}>
+            {REPRESENTATIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </Field>
+        <Field label="Couleur par">
+          <select className="select" value={t.colorBy} onChange={(e) => set((x) => void (x.colorBy = e.target.value as ExportTemplate['colorBy']))}>
+            {COLOR_BY_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </select>
+        </Field>
+        <Field label="Taille des points">
+          <select className="select" value={t.sizeMode} onChange={(e) => set((x) => void (x.sizeMode = e.target.value as ExportTemplate['sizeMode']))}>
+            <option value="logements">Nombre de logements</option>
+            <option value="fixe">Fixe</option>
+          </select>
+        </Field>
+        <Field label={`Taille des éléments : ×${t.sizeScale.toFixed(1)}`}>
+          <input type="range" min={0.5} max={3} step={0.1} value={t.sizeScale} onChange={(e) => set((x) => void (x.sizeScale = Number(e.target.value)))} />
+        </Field>
+        <Switch checked={t.labels} onChange={(v) => set((x) => void (x.labels = v))} label="Libellés du patrimoine" />
+      </div>
+      <div className="admin-checks">
+        {cfg.layers.filter((l) => l.enabled).map((l) => (
+          <label key={l.id} className="chip-toggle">
+            <input type="checkbox" checked={t.layers.includes(l.id)} onChange={(e) => set((x) => void (x.layers = toggle(x.layers, l.id, e.target.checked)))} />
+            {l.label}
+          </label>
+        ))}
+      </div>
+
+      <div className="admin-sub">Cadrage et format</div>
+      <div className="admin-grid">
+        <Field label="Format">
+          <select className="select" value={fmt} onChange={(e) => { const f = FORMATS.find((x) => x.label === e.target.value); if (f) set((x) => { x.width = f.w; x.height = f.h; }); }}>
+            {FORMATS.map((f) => <option key={f.label}>{f.label}</option>)}
+            <option>Personnalisé</option>
+          </select>
+        </Field>
+        <Field label="Largeur × hauteur (px)">
+          <div className="admin-inline">
+            <input className="input" type="number" min={400} max={4000} value={t.width} onChange={(e) => set((x) => void (x.width = Number(e.target.value)))} />
+            <input className="input" type="number" min={400} max={4000} value={t.height} onChange={(e) => set((x) => void (x.height = Number(e.target.value)))} />
+          </div>
+        </Field>
+        <Field label="Résolution">
+          <select className="select" value={t.pixelRatio} onChange={(e) => set((x) => void (x.pixelRatio = Number(e.target.value)))}>
+            <option value={1}>Écran (×1)</option>
+            <option value={2}>Impression (×2)</option>
+            <option value={3}>Haute définition (×3)</option>
+          </select>
+        </Field>
+        <Field label={`Marge autour de la zone : ${t.padding} px`}>
+          <input type="range" min={0} max={300} step={10} value={t.padding} onChange={(e) => set((x) => void (x.padding = Number(e.target.value)))} />
+        </Field>
+        <Field label={`Zoom maximal : ${t.maxZoom}`} hint="Limite le zoom sur les petites zones (une résidence isolée).">
+          <input type="range" min={8} max={19} step={0.5} value={t.maxZoom} onChange={(e) => set((x) => void (x.maxZoom = Number(e.target.value)))} />
+        </Field>
+        <Field label="Résultat proposé par défaut">
+          <select className="select" value={t.output} onChange={(e) => set((x) => void (x.output = e.target.value as TemplateOutput))}>
+            <option value="carte">Carte dynamique</option>
+            <option value="image">Image</option>
+            <option value="les-deux">Carte + image</option>
+          </select>
+        </Field>
+      </div>
+    </Card>
   );
 }

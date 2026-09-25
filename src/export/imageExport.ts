@@ -4,7 +4,8 @@
  */
 import { basemaps } from '../config/layers.config';
 import type { FilteredView } from '../domain/patrimoineIndex';
-import { COLOR_BY_OPTIONS, MISSING } from '../domain/symbology';
+import { COLOR_BY_OPTIONS, MISSING, type ColorBy } from '../domain/symbology';
+import type { Map as MlMap } from 'maplibre-gl';
 import { mapRef } from '../map/mapRef';
 import { colorRegistry } from '../store/colorRegistry';
 import { useAppStore } from '../store/useAppStore';
@@ -13,6 +14,21 @@ import { download } from './excelExport';
 export async function exportImage(view: FilteredView) {
   const map = mapRef.current;
   if (!map) throw new Error('Carte non initialisée');
+  const s = useAppStore.getState();
+  const colorLabel = COLOR_BY_OPTIONS.find((o) => o.key === s.patrimoine.colorBy)?.label ?? '';
+  const blob = await composeMapImage(map, view, { title: `Patrimoine — ${colorLabel}` });
+  download(blob, `carte-patrimoine-${new Date().toISOString().slice(0, 10)}.png`);
+}
+
+export interface ComposeOptions {
+  title: string;
+  subtitle?: string;
+  colorBy?: ColorBy;
+  basemapId?: string;
+}
+
+/** Compose carte + en-tête + légende + sources sur un canvas 2D et renvoie un PNG. */
+export async function composeMapImage(map: MlMap, view: FilteredView, opts: ComposeOptions): Promise<Blob> {
   await new Promise<void>((resolve) => {
     if (map.loaded()) resolve();
     else map.once('idle', () => resolve());
@@ -22,7 +38,7 @@ export async function exportImage(view: FilteredView) {
   const src = map.getCanvas();
   const s = useAppStore.getState();
   const ix = s.index!;
-  const by = s.patrimoine.colorBy;
+  const by = opts.colorBy ?? s.patrimoine.colorBy;
   const ratio = src.width / src.clientWidth;
 
   const headerH = 56 * ratio;
@@ -49,10 +65,10 @@ export async function exportImage(view: FilteredView) {
   ctx.font = font(18, 600);
   ctx.textBaseline = 'middle';
   const colorLabel = COLOR_BY_OPTIONS.find((o) => o.key === by)?.label ?? '';
-  ctx.fillText(`Patrimoine — ${colorLabel}`, px(16), headerH / 2 - px(8));
+  ctx.fillText(opts.title, px(16), headerH / 2 - px(8));
   ctx.font = font(12);
   ctx.fillText(
-    `${view.totals.residences.toLocaleString('fr-FR')} résidences · ${view.totals.logements.toLocaleString('fr-FR')} logements · ${new Date().toLocaleDateString('fr-FR')}${s.dataset?.source.synthetic ? ' · DONNÉES SYNTHÉTIQUES (démo)' : ''}`,
+    `${opts.subtitle ? `${opts.subtitle} · ` : ''}${view.totals.residences.toLocaleString('fr-FR')} résidences · ${view.totals.logements.toLocaleString('fr-FR')} logements · ${new Date().toLocaleDateString('fr-FR')}${s.dataset?.source.synthetic ? ' · DONNÉES SYNTHÉTIQUES (démo)' : ''}`,
     px(16),
     headerH / 2 + px(12),
   );
@@ -94,7 +110,7 @@ export async function exportImage(view: FilteredView) {
   }
 
   // Pied : sources
-  const bm = basemaps.find((b) => b.id === s.basemap);
+  const bm = basemaps.find((b) => b.id === (opts.basemapId ?? s.basemap));
   ctx.fillStyle = '#f1f3f5';
   ctx.fillRect(0, headerH + src.height, out.width, footerH);
   ctx.fillStyle = '#495057';
@@ -103,7 +119,7 @@ export async function exportImage(view: FilteredView) {
 
   const blob = await new Promise<Blob | null>((r) => out.toBlob(r, 'image/png'));
   if (!blob) throw new Error('Génération PNG impossible');
-  download(blob, `carte-patrimoine-${new Date().toISOString().slice(0, 10)}.png`);
+  return blob;
 }
 
 function truncate(ctx: CanvasRenderingContext2D, s: string, w: number) {
