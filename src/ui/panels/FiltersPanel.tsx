@@ -4,7 +4,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { siteConfig } from '../../config/siteConfig';
 import { useFilteredView } from '../../store/useFilteredView';
 import { Icon } from '../components/Icon';
-import { MultiSelect, Section, fmt, type Option } from '../components/controls';
+import { AnimatedNumber, MultiSelect, Section, type Option } from '../components/controls';
 import { ROLE_LABELS, useFilterOptions } from './filterOptions';
 
 const F = siteConfig.ui.filters;
@@ -32,7 +32,7 @@ export function FiltersPanel() {
     <div className="panel-content">
       <div className="filter-summary">
         <div>
-          <strong>{fmt(view?.totals.logements)}</strong> logements · <strong>{fmt(view?.totals.residences)}</strong> résidences
+          <strong><AnimatedNumber value={view?.totals.logements} /></strong> logements · <strong><AnimatedNumber value={view?.totals.residences} /></strong> résidences
           <div className="muted small">{n ? `${n} critère(s) actif(s) — combinés par ET` : 'Aucun filtre actif'}</div>
         </div>
         <button type="button" className="btn btn-ghost btn-sm" disabled={!n} onClick={reset}>

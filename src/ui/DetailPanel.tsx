@@ -1,4 +1,5 @@
-import { useMemo, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
+import { cascade, popIn } from './motion';
 import { appConfig } from '../config/app.config';
 import type { Batiment, EntityRef, Responsables, GeoContext, GeoPoint, Logement, Residence } from '../domain/model';
 import { PatrimoineIndex } from '../domain/patrimoineIndex';
@@ -30,9 +31,26 @@ export function DetailPanel() {
   const index = useAppStore((s) => s.index);
   const select = useAppStore((s) => s.select);
   useAppStore((s) => s.geoVersion); // re-rendu quand les référentiels arrivent
+  const aside = useRef<HTMLElement>(null);
+  const wasOpen = useRef(false);
+  // Ouverture : glissement depuis la droite ; changement d'objet : contenu en cascade.
+  useLayoutEffect(() => {
+    const el = aside.current;
+    if (!el) {
+      wasOpen.current = false;
+      return;
+    }
+    if (!wasOpen.current) popIn(el, 'right');
+    wasOpen.current = true;
+    const scroll = el.querySelector('.detail-scroll');
+    if (scroll) {
+      scroll.scrollTop = 0;
+      cascade(scroll.querySelectorAll(':scope > *, .kpis > .kpi'), 18);
+    }
+  }, [sel?.kind, sel?.id]);
   if (!sel || !index) return null;
   return (
-    <aside className="detail-panel" aria-label={`Fiche ${KIND_LABEL[sel.kind] ?? ''}`}>
+    <aside ref={aside} className="detail-panel" aria-label={`Fiche ${KIND_LABEL[sel.kind] ?? ''}`}>
       <button type="button" className="icon-btn detail-close" onClick={() => select(undefined)} aria-label="Fermer la fiche">
         <Icon name="close" />
       </button>

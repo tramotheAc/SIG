@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePopIn } from './motion';
 import { createPortal } from 'react-dom';
 import { siteConfig, ZONE_LABELS, type TemplateOutput, type ZoneType } from '../config/siteConfig';
 import { applyTemplateToMap, downloadTemplateImage, zoneOptions } from '../export/templateExport';
@@ -20,6 +21,8 @@ export function ExportTemplatesDialog({ onClose }: { onClose: () => void }) {
   const [q, setQ] = useState('');
   const [output, setOutput] = useState<TemplateOutput>(tpl?.output ?? 'les-deux');
   const [busy, setBusy] = useState(false);
+  const dlg = useRef<HTMLDivElement>(null);
+  usePopIn(dlg, 'scale');
 
   useEffect(() => {
     setZoneType(tpl?.zoneTypes[0]);
@@ -51,7 +54,7 @@ export function ExportTemplatesDialog({ onClose }: { onClose: () => void }) {
 
   return createPortal(
     <div className="dialog-backdrop" onClick={onClose}>
-      <div className="dialog dialog-wide" role="dialog" aria-modal="true" aria-labelledby="tpl-title" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+      <div ref={dlg} className="dialog dialog-wide" role="dialog" aria-modal="true" aria-labelledby="tpl-title" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
         <header className="dialog-head">
           <h2 id="tpl-title">Exports types</h2>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Fermer"><Icon name="close" /></button>

@@ -1,4 +1,8 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { animate } from 'animejs';
 import { activeFilterCount } from '../domain/patrimoineIndex';
+import { mapRef } from '../map/mapRef';
+import { DUR, popIn, reducedMotion } from './motion';
 import { useAppStore, type LeftTab } from '../store/useAppStore';
 import { siteConfig } from '../config/siteConfig';
 import { Icon } from './components/Icon';
@@ -19,6 +23,56 @@ export function LeftPanel() {
   const tab = useAppStore((s) => s.leftTab);
   const open = useAppStore((s) => s.leftOpen);
   const set = useAppStore((s) => s.set);
+  const panel = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(open);
+  const first = useRef(true);
+  // Repli / dépli animés du volet ; la carte suit la largeur à chaque image.
+  useLayoutEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (open) setMounted(true);
+    else if (panel.current) {
+      const el = panel.current;
+      animate(el, {
+        width: [el.offsetWidth, 0],
+        opacity: [1, 0],
+        duration: reducedMotion() ? 0 : DUR.base,
+        ease: 'inOutCubic',
+        onUpdate: () => mapRef.current?.resize(),
+        onComplete: () => {
+          setMounted(false);
+          mapRef.current?.resize();
+        },
+      });
+    }
+  }, [open]);
+  const initialShow = useRef(true);
+  useLayoutEffect(() => {
+    if (initialShow.current) {
+      initialShow.current = false;
+      return;
+    }
+    if (!open || !mounted || !panel.current) return;
+    const el = panel.current;
+    const w = el.offsetWidth;
+    animate(el, {
+      width: [0, w],
+      opacity: [0, 1],
+      duration: reducedMotion() ? 0 : DUR.base,
+      ease: 'outCubic',
+      onUpdate: () => mapRef.current?.resize(),
+      onComplete: () => {
+        el.style.width = '';
+        mapRef.current?.resize();
+      },
+    });
+  }, [open, mounted]);
+  // Changement d'onglet : léger fondu du contenu.
+  useEffect(() => {
+    if (panel.current) popIn(panel.current.querySelector('.panel-content') as HTMLElement ?? panel.current, 'up');
+  }, [tab]);
   if (!TABS.length) return null;
   const nFilters = useAppStore((s) => activeFilterCount(s.filters));
   return (
@@ -43,8 +97,8 @@ export function LeftPanel() {
           <Icon name={open ? 'chevronLeft' : 'chevronRight'} size={18} />
         </button>
       </div>
-      {open && (
-        <div className="left-panel" role="tabpanel">
+      {mounted && (
+        <div className="left-panel" role="tabpanel" ref={panel}>
           <h2 className="panel-title">{TABS.find((t) => t.id === tab)?.label}</h2>
           {tab === 'patrimoine' && <PatrimoinePanel />}
           {tab === 'couches' && <LayersPanel />}

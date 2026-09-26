@@ -3,7 +3,7 @@ import { ColorBySelect } from '../ColorBySelect';
 import { levelForZoom } from '../../map/patrimoineLayers';
 import { useAppStore, type Representation } from '../../store/useAppStore';
 import { useFilteredView } from '../../store/useFilteredView';
-import { Section, Segmented, Slider, Toggle, fmt } from '../components/controls';
+import { AnimatedNumber, Section, Segmented, Slider, Toggle } from '../components/controls';
 import { Legend } from '../Legend';
 
 const REPRESENTATIONS: { value: Representation; label: string }[] = [
@@ -26,9 +26,9 @@ export function PatrimoinePanel() {
   return (
     <div className="panel-content">
       <div className="kpis">
-        <div className="kpi"><span className="kpi-value">{fmt(view?.totals.residences)}</span><span className="kpi-label">résidences</span></div>
-        <div className="kpi"><span className="kpi-value">{fmt(view?.totals.batiments)}</span><span className="kpi-label">bâtiments</span></div>
-        <div className="kpi"><span className="kpi-value">{fmt(view?.totals.logements)}</span><span className="kpi-label">logements</span></div>
+        <div className="kpi"><span className="kpi-value"><AnimatedNumber value={view?.totals.residences} /></span><span className="kpi-label">résidences</span></div>
+        <div className="kpi"><span className="kpi-value"><AnimatedNumber value={view?.totals.batiments} /></span><span className="kpi-label">bâtiments</span></div>
+        <div className="kpi"><span className="kpi-value"><AnimatedNumber value={view?.totals.logements} /></span><span className="kpi-label">logements</span></div>
       </div>
 
       <Section title="Affichage">

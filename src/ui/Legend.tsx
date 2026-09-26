@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
+import { cascade } from './motion';
 import { MISSING, COLOR_BY_OPTIONS, type ColorBy } from '../domain/symbology';
 
 /** Critères ordonnés : légende triée par valeur (T1→T5, décennies) et non par effectif. */
@@ -23,6 +24,10 @@ export function Legend({ compact = false }: { compact?: boolean }) {
   const isolate = useAppStore((s) => s.isolateCategory);
   const toggleHidden = useAppStore((s) => s.toggleHidden);
   const view = useFilteredView();
+  const listRef = useRef<HTMLUListElement>(null);
+  useLayoutEffect(() => {
+    if (listRef.current) cascade([...listRef.current.children], 16);
+  }, [colorBy]);
 
   const entries = useMemo(() => {
     if (!index) return [];
@@ -55,7 +60,7 @@ export function Legend({ compact = false }: { compact?: boolean }) {
         {compact && <span className="muted small">logements</span>}
       </div>
       {!entries.length && <div className="muted small">Aucune donnée pour ce critère.</div>}
-      <ul className="legend-list">
+      <ul className="legend-list" ref={listRef}>
         {entries.map((e) => {
           const isHidden = hidden?.includes(e.value);
           const isSel = selected.includes(e.value);

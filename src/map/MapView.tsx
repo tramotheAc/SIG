@@ -18,6 +18,7 @@ import {
   type PatrimoineRenderCache,
 } from './patrimoineLayers';
 import { INTERACTIVE_REF_LAYERS, ReferenceLayerManager, setLastView } from './referenceLayers';
+import { revealPatrimoine } from './transitions';
 
 // Worker MapLibre empaqueté explicitement (compatible dev + build).
 setWorkerUrl(maplibreWorkerUrl);
@@ -165,13 +166,17 @@ export function MapView() {
   useEffect(() => {
     if (!map || !view || !index) return;
     const styleKey = `${patrimoine.sizeMode}|${patrimoine.colorBy}|${patrimoine.uniformColor}`;
-    if (lastView.current !== view || lastStyle.current !== styleKey) {
+    const changed = lastView.current !== view || lastStyle.current !== styleKey;
+    const firstRender = viewKey.current === 0;
+    if (changed) {
       viewKey.current++;
       lastView.current = view;
       lastStyle.current = styleKey;
     }
     setLastView(view);
     updatePatrimoineData(map, index, view, patrimoine, zoom, cache.current, String(viewKey.current));
+    // Transition douce : les points réapparaissent en fondu avec une légère « respiration ».
+    if (changed && !firstRender) revealPatrimoine(map, patrimoine.opacity, patrimoine.sizeScale);
   }, [map, index, view, patrimoine, zoom]);
 
   /* Couches de référence */

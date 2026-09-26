@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { cascade } from './motion';
 import { appConfig } from '../config/app.config';
 import { siteConfig } from '../config/siteConfig';
 import { geocode } from '../data/referentiels/geocodage';
@@ -78,6 +79,11 @@ export function SearchBox() {
     }
   };
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  const resultKey = flat.map((r) => r.id).join('|');
+  useLayoutEffect(() => {
+    if (panelRef.current) cascade(panelRef.current.querySelectorAll('.search-group'), 30);
+  }, [resultKey]);
   let idx = -1;
   const showPanel = open && q.trim().length >= 2;
   return (
@@ -104,7 +110,7 @@ export function SearchBox() {
         <kbd className="search-kbd">/</kbd>
       )}
       {showPanel && (
-        <div className="search-panel" id="search-results" role="listbox">
+        <div ref={panelRef} className="search-panel" id="search-results" role="listbox">
           {grouped.map((g) => (
             <div key={g.kind} className="search-group">
               <div className="search-group-title">{g.label}</div>

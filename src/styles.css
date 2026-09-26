@@ -378,3 +378,24 @@ h1, h2, h3 { margin: 0; }
 .legend-choose { padding: 0 2px 6px; }
 .select-compact { height: 30px; font-size: var(--fs-sm); padding: 0 6px; }
 .colorby-row { display: flex; gap: 6px; align-items: center; } .colorby-row .select { flex: 1; min-width: 0; } .colorby-row .color-input { width: 34px; height: 30px; flex: none; cursor: pointer; }
+
+/* ---------------------------- Mouvement ---------------------------- */
+.section-chevron { transition: transform 0.22s cubic-bezier(0.33, 1, 0.68, 1); }
+.section.is-open .section-chevron { transform: rotate(90deg); }
+.section-toggle:hover h3 { color: var(--text); }
+.btn, .icon-btn, .chip-toggle, .legend-main, .basemap-card, .rail-btn, .tpl-card, .child-list button, .search-item {
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+.btn:active:not(:disabled), .chip-toggle:active, .basemap-card:active { transform: scale(0.98); }
+.dialog-backdrop { backdrop-filter: blur(6px) saturate(0.9); -webkit-backdrop-filter: blur(6px) saturate(0.9); background: rgba(15, 23, 32, 0.32); }
+.map-area.has-embed .map-container, .map-area.has-embed .legend-float, .map-area.has-embed .overlay-top { filter: blur(3px) saturate(0.85); transition: filter 0.3s ease; }
+.map-area .map-container { transition: filter 0.3s ease; }
+.embed-backdrop { position: absolute; inset: 0; z-index: 29; background: rgba(15, 23, 32, 0.22); }
+.left-panel { will-change: width; }
+.detail-panel { animation: none; }
+.toast { animation: toast-in 0.28s cubic-bezier(0.33, 1, 0.68, 1); }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 10px); } }
+.search-panel { animation: drop-in 0.18s cubic-bezier(0.33, 1, 0.68, 1); transform-origin: top center; }
+.menu, .dropdown { animation: drop-in 0.16s cubic-bezier(0.33, 1, 0.68, 1); transform-origin: top right; }
+@keyframes drop-in { from { opacity: 0; transform: translateY(-4px) scale(0.99); } }
+@media (prefers-reduced-motion: reduce) { .dialog-backdrop { backdrop-filter: none; } }

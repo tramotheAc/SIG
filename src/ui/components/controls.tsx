@@ -1,4 +1,5 @@
-import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { collapse, expand, useAnimatedNumber } from '../motion';
 import { Icon } from './Icon';
 import { normalize } from '../../domain/search';
 
@@ -111,16 +112,40 @@ export function MultiSelect({ label, options, value, onChange, placeholder = 'Re
 
 export function Section({ title, children, right, defaultOpen = false }: { title: string; children: ReactNode; right?: ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
+  const [mounted, setMounted] = useState(defaultOpen);
+  const body = useRef<HTMLDivElement>(null);
+  const first = useRef(true);
+  useLayoutEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (open && mounted && body.current) expand(body.current);
+  }, [open, mounted]);
+  const toggle = () => {
+    if (open) {
+      setOpen(false);
+      if (body.current) collapse(body.current, () => setMounted(false));
+      else setMounted(false);
+    } else {
+      setOpen(true);
+      setMounted(true);
+    }
+  };
   return (
-    <section className="section">
+    <section className={`section ${open ? 'is-open' : ''}`}>
       <header className="section-header">
-        <button type="button" className="section-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
-          <Icon name={open ? 'chevronDown' : 'chevronRight'} size={14} />
+        <button type="button" className="section-toggle" aria-expanded={open} onClick={toggle}>
+          <Icon name="chevronRight" size={14} className="section-chevron" />
           <h3>{title}</h3>
         </button>
         {right}
       </header>
-      {open && <div className="section-body">{children}</div>}
+      {mounted && (
+        <div className="section-body" ref={body}>
+          {children}
+        </div>
+      )}
     </section>
   );
 }
@@ -133,3 +158,8 @@ export function StatusBadge({ status, message }: { status: string; message?: str
 }
 
 export const fmt = (n: number | undefined) => (n === undefined ? '—' : n.toLocaleString('fr-FR'));
+
+/** Nombre formaté avec comptage animé. */
+export function AnimatedNumber({ value }: { value: number | undefined }) {
+  return <>{fmt(useAnimatedNumber(value))}</>;
+}
