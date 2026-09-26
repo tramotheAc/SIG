@@ -5,6 +5,12 @@
 import { animate, stagger, type JSAnimation } from 'animejs';
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 
+/** Retire les styles laissés par une animation (transform / opacité) : sans cela, chaque
+ *  élément animé crée un contexte d'empilement et peut passer devant une liste déroulante voisine. */
+function clean(els: HTMLElement | HTMLElement[], props: string[] = ['transform', 'opacity']) {
+  for (const el of Array.isArray(els) ? els : [els]) for (const p of props) el.style.removeProperty(p);
+}
+
 export const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** Durées de référence (ms). */
@@ -27,11 +33,13 @@ export function expand(el: HTMLElement, onDone?: () => void): JSAnimation {
     onComplete: () => {
       el.style.height = '';
       el.style.overflow = '';
+      clean(el);
       onDone?.();
     },
   });
   const kids = [...el.children] as HTMLElement[];
-  if (kids.length && !reducedMotion()) animate(kids, { opacity: [0, 1], translateY: [6, 0], duration: DUR.base, delay: stagger(25, { start: 60 }), ease: EASE });
+  if (kids.length && !reducedMotion())
+    animate(kids, { opacity: [0, 1], translateY: [6, 0], duration: DUR.base, delay: stagger(25, { start: 60 }), ease: EASE, onComplete: () => clean(kids) });
   return a;
 }
 
@@ -51,14 +59,14 @@ export function collapse(el: HTMLElement, onDone?: () => void): JSAnimation {
 export function popIn(el: HTMLElement, from: 'scale' | 'right' | 'up' = 'scale') {
   const params: Record<string, number[]> =
     from === 'scale' ? { opacity: [0, 1], scale: [0.97, 1] } : from === 'right' ? { opacity: [0, 1], translateX: [24, 0] } : { opacity: [0, 1], translateY: [12, 0] };
-  return animate(el, { ...params, duration: dur(DUR.base), ease: EASE });
+  return animate(el, { ...params, duration: dur(DUR.base), ease: EASE, onComplete: () => clean(el) });
 }
 
 /** Cascade d'apparition d'éléments (listes, blocs d'une fiche). */
 export function cascade(els: Element[] | NodeListOf<Element>, step = 22) {
   const list = [...els] as HTMLElement[];
   if (!list.length || reducedMotion()) return;
-  animate(list, { opacity: [0, 1], translateY: [8, 0], duration: DUR.base, delay: stagger(step), ease: EASE });
+  animate(list, { opacity: [0, 1], translateY: [8, 0], duration: DUR.base, delay: stagger(step), ease: EASE, onComplete: () => clean(list) });
 }
 
 /** Comptage animé d'un nombre (chiffres clés). */

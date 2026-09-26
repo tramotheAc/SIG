@@ -65,6 +65,7 @@ export function LeftPanel() {
       onUpdate: () => mapRef.current?.resize(),
       onComplete: () => {
         el.style.width = '';
+        el.style.opacity = '';
         mapRef.current?.resize();
       },
     });
