@@ -109,7 +109,7 @@ export function MultiSelect({ label, options, value, onChange, placeholder = 'Re
   );
 }
 
-export function Section({ title, children, right, defaultOpen = true }: { title: string; children: ReactNode; right?: ReactNode; defaultOpen?: boolean }) {
+export function Section({ title, children, right, defaultOpen = false }: { title: string; children: ReactNode; right?: ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <section className="section">

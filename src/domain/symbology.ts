@@ -4,6 +4,7 @@ import type { QpvStatus, RoleKey } from './model';
 
 /** Critères de coloration du patrimoine. */
 export type ColorBy =
+  | 'uniforme'
   | 'agence'
   | RoleKey
   | 'qpv'
@@ -23,8 +24,9 @@ export type ColorBy =
 /** Critères portés par les logements : la résidence / l'adresse prend la valeur majoritaire. */
 export const LOGEMENT_LEVEL: ColorBy[] = ['typeLot', 'financement', 'individuelCollectif', 'etat'];
 
-export type ColorGroup = 'metier' | 'territoire' | 'patrimoine' | 'geo';
+export type ColorGroup = 'neutre' | 'metier' | 'territoire' | 'patrimoine' | 'geo';
 export const COLOR_GROUP_LABELS: Record<ColorGroup, string> = {
+  neutre: 'Neutre',
   metier: 'Organisation / métiers',
   territoire: 'Territoire',
   patrimoine: 'Caractéristiques du patrimoine',
@@ -32,6 +34,7 @@ export const COLOR_GROUP_LABELS: Record<ColorGroup, string> = {
 };
 
 export const COLOR_BY_OPTIONS: { key: ColorBy; label: string; group: ColorGroup }[] = [
+  { key: 'uniforme', label: 'Couleur unique', group: 'neutre' },
   { key: 'agence', label: 'Agence', group: 'metier' },
   { key: 'conseillerCommercial', label: 'Conseiller commercial', group: 'metier' },
   { key: 'gerantImmobilier', label: 'Gérant immobilier', group: 'metier' },
@@ -80,7 +83,11 @@ export class ColorRegistry {
     this.maps.set(by, map);
   }
 
+  /** Couleur du mode « Couleur unique » (choisie par l'utilisateur). */
+  uniform = '#3560a4';
+
   colorOf(by: ColorBy, value: string | undefined): string {
+    if (by === 'uniforme') return this.uniform;
     if (value === undefined || value === MISSING) return symbologyConfig.missingColor;
     const fixed = fixedColors(by)?.[value];
     if (fixed) return fixed;

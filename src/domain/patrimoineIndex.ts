@@ -178,6 +178,8 @@ export class PatrimoineIndex {
   /** Valeur de catégorie (clé stable) d'un objet pour un critère de coloration. */
   categoryOf(by: ColorBy, obj: Residence | Batiment | Logement): string {
     switch (by) {
+      case 'uniforme':
+        return 'tout';
       case 'agence':
         return obj.agenceId ?? MISSING;
       case 'qpv': {
@@ -216,6 +218,7 @@ export class PatrimoineIndex {
 
   /** Libellé lisible d'une catégorie. */
   categoryLabel(by: ColorBy, value: string): string {
+    if (by === 'uniforme') return 'Patrimoine';
     if (value === MISSING) return 'Non renseigné';
     if (by === 'agence') return this.agenceNom(value) ?? value;
     if (by === 'qpv') return QPV_LABELS[value as QpvStatus] ?? value;

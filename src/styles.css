@@ -377,3 +377,4 @@ h1, h2, h3 { margin: 0; }
 .thumb-custom { background: repeating-linear-gradient(45deg, #dbe4f0 0 6px, #c5d3e6 6px 12px); }
 .legend-choose { padding: 0 2px 6px; }
 .select-compact { height: 30px; font-size: var(--fs-sm); padding: 0 6px; }
+.colorby-row { display: flex; gap: 6px; align-items: center; } .colorby-row .select { flex: 1; min-width: 0; } .colorby-row .color-input { width: 34px; height: 30px; flex: none; cursor: pointer; }

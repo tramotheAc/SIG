@@ -19,6 +19,7 @@ export function Legend({ compact = false }: { compact?: boolean }) {
   const hidden = useAppStore((s) => s.patrimoine.hidden[colorBy]);
   const filters = useAppStore((s) => s.filters);
   const geoVersion = useAppStore((s) => s.geoVersion);
+  const uniformColor = useAppStore((s) => s.patrimoine.uniformColor);
   const isolate = useAppStore((s) => s.isolateCategory);
   const toggleHidden = useAppStore((s) => s.toggleHidden);
   const view = useFilteredView();
@@ -26,6 +27,7 @@ export function Legend({ compact = false }: { compact?: boolean }) {
   const entries = useMemo(() => {
     if (!index) return [];
     void geoVersion;
+    void uniformColor;
     const stats = new Map(view?.categories.map((c) => [c.value, c]) ?? []);
     const all = new Set(index.allCategories(colorBy));
     for (const c of stats.keys()) all.add(c);
@@ -40,7 +42,7 @@ export function Legend({ compact = false }: { compact?: boolean }) {
       .sort((a, b) =>
         a.value === MISSING ? 1 : b.value === MISSING ? -1 : ORDINAL.includes(colorBy) ? a.value.localeCompare(b.value, 'fr', { numeric: true }) : b.logements - a.logements || a.label.localeCompare(b.label, 'fr'),
       );
-  }, [index, colorBy, view, geoVersion]);
+  }, [index, colorBy, view, geoVersion, uniformColor]);
 
   if (!index) return null;
   const selected = activeValues(colorBy, filters);

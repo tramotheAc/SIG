@@ -4,6 +4,7 @@
 import { create } from 'zustand';
 import { basemaps, referenceLayers } from '../config/layers.config';
 import { siteConfig } from '../config/siteConfig';
+import { colorRegistry } from './colorRegistry';
 import type { PatrimoineIndex, Filters } from '../domain/patrimoineIndex';
 import { EMPTY_FILTERS } from '../domain/patrimoineIndex';
 import type { EntityRef, GeoPoint, PatrimoineDataset, RoleKey } from '../domain/model';
@@ -35,6 +36,8 @@ export interface PatrimoineStyle {
   colorBy: ColorBy;
   sizeMode: SizeMode;
   sizeScale: number;
+  /** Couleur du mode « Couleur unique ». */
+  uniformColor: string;
   representation: Representation;
   /** Catégories masquées par critère de coloration. */
   hidden: Partial<Record<ColorBy, string[]>>;
@@ -133,6 +136,7 @@ export const useAppStore = create<State & Actions>((set, get) => ({
     representation: 'auto',
     hidden: {},
     labels: true,
+    uniformColor: '#3560a4',
   },
   filters: EMPTY_FILTERS,
   leftTab: ((Object.keys(siteConfig.ui.tabs) as LeftTab[]).find((t) => siteConfig.ui.tabs[t]) ?? 'patrimoine'),
@@ -151,7 +155,11 @@ export const useAppStore = create<State & Actions>((set, get) => ({
       [order[i], order[j]] = [order[j], order[i]];
       return { layerOrder: order };
     }),
-  setPatrimoine: (p) => set((s) => ({ patrimoine: { ...s.patrimoine, ...p } })),
+  setPatrimoine: (p) =>
+    set((s) => {
+      if (p.uniformColor) colorRegistry.uniform = p.uniformColor;
+      return { patrimoine: { ...s.patrimoine, ...p } };
+    }),
   toggleHidden: (value) =>
     set((s) => {
       const by = s.patrimoine.colorBy;

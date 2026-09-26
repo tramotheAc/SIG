@@ -164,7 +164,7 @@ export function MapView() {
   const lastStyle = useRef<string>('');
   useEffect(() => {
     if (!map || !view || !index) return;
-    const styleKey = `${patrimoine.sizeMode}|${patrimoine.colorBy}`;
+    const styleKey = `${patrimoine.sizeMode}|${patrimoine.colorBy}|${patrimoine.uniformColor}`;
     if (lastView.current !== view || lastStyle.current !== styleKey) {
       viewKey.current++;
       lastView.current = view;
