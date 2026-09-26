@@ -23,6 +23,8 @@ export interface BasemapSetting {
   enabled: boolean;
   label: string;
   tiles: string[];
+  /** URL du style vectoriel (fonds vectoriels uniquement). */
+  style?: string;
 }
 
 export interface LayerSetting {
@@ -135,7 +137,7 @@ export interface CustomBasemap {
   id: string;
   enabled: boolean;
   label: string;
-  type: 'wmts' | 'wms' | 'xyz';
+  type: 'wmts' | 'wms' | 'xyz' | 'style';
   url: string;
   capabilitiesUrl?: string;
   attribution: string;
@@ -322,7 +324,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = clone({
       authValue: '',
     },
   },
-  basemaps: basemaps.map((b) => ({ id: b.id, enabled: true, label: b.label, tiles: b.tiles })),
+  basemaps: basemaps.map((b) => ({ id: b.id, enabled: true, label: b.label, tiles: b.tiles, ...(b.style ? { style: b.style } : {}) })),
   defaultBasemap: basemaps[0].id,
   layers: referenceLayers.map(layerToSetting),
   ui: {
@@ -456,14 +458,15 @@ export function applySiteConfig(cfg: SiteConfig) {
   for (const s of cfg.basemaps) {
     const def = bm.find((b) => b.id === s.id);
     if (!def || !s.enabled) continue;
-    basemaps.push({ ...def, label: s.label || def.label, tiles: s.tiles?.length || !def.tiles.length ? s.tiles : def.tiles });
+    basemaps.push({ ...def, label: s.label || def.label, tiles: s.tiles?.length || !def.tiles.length ? s.tiles : def.tiles, style: def.style ? s.style || def.style : undefined });
   }
   for (const c of cfg.customBasemaps) {
     if (!c.enabled || !c.url) continue;
     basemaps.push({
       id: c.id,
       label: c.label,
-      tiles: [c.url],
+      tiles: c.type === 'style' ? [] : [c.url],
+      style: c.type === 'style' ? c.url : undefined,
       attribution: c.attribution,
       maxzoom: c.maxzoom || 19,
       paint: c.grayscale ? { 'raster-saturation': -1 } : undefined,

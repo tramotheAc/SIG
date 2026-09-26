@@ -356,6 +356,11 @@ function FondsSection({ cfg, update }: Props) {
               <Field label="Libellé">
                 <input className="input" value={b.label} onChange={(e) => update((c) => void (c.basemaps[i].label = e.target.value))} />
               </Field>
+              {b.style && (
+                <Field label="URL du style vectoriel" wide>
+                  <input className="input mono" value={b.style} onChange={(e) => update((c) => void (c.basemaps[i].style = e.target.value))} />
+                </Field>
+              )}
               {b.tiles.length > 0 && (
                 <Field label="URL des tuiles ({z} {x} {y})" wide>
                   <div className="admin-inline">
@@ -1222,6 +1227,7 @@ function CustomBasemapCard({ b, isDefault, setDefault, set, onDelete }: { b: Cus
             <option value="wmts">WMTS</option>
             <option value="wms">WMS</option>
             <option value="xyz">Tuiles XYZ</option>
+            <option value="style">Style vectoriel (style.json)</option>
           </select>
         </Field>
         <Field label="Nom affiché">
@@ -1230,7 +1236,7 @@ function CustomBasemapCard({ b, isDefault, setDefault, set, onDelete }: { b: Cus
         <Field label="Attribution" hint="Mention obligatoire du fournisseur, ex. © IGN">
           <input className="input" value={b.attribution} onChange={(e) => set((x) => void (x.attribution = e.target.value))} />
         </Field>
-        {b.type !== 'xyz' && (
+        {(b.type === 'wmts' || b.type === 'wms') && (
           <CapsPicker
             type={b.type}
             capabilitiesUrl={b.capabilitiesUrl ?? ''}
@@ -1240,7 +1246,7 @@ function CustomBasemapCard({ b, isDefault, setDefault, set, onDelete }: { b: Cus
             onPick={(l) => set((x) => { x.url = l.url; if (x.label === 'Nouveau fond') x.label = l.title; })}
           />
         )}
-        <Field label="Modèle d’URL des tuiles" hint={b.type === 'xyz' ? 'Ex. https://…/{z}/{x}/{y}.png' : 'Rempli automatiquement en choisissant une couche ci-dessus.'} wide>
+        <Field label={b.type === 'style' ? 'URL du style MapLibre' : 'Modèle d’URL des tuiles'} hint={b.type === 'style' ? 'Ex. https://tiles.openfreemap.org/styles/positron (style OpenMapTiles / MapLibre)' : b.type === 'xyz' ? 'Ex. https://…/{z}/{x}/{y}.png' : 'Rempli automatiquement en choisissant une couche ci-dessus.'} wide>
           <div className="admin-inline">
             <input className="input mono" value={b.url} onChange={(e) => set((x) => void (x.url = e.target.value))} />
             <TestUrl url={b.url} />

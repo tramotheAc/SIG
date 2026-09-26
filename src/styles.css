@@ -374,6 +374,10 @@ h1, h2, h3 { margin: 0; }
 .embed-bar { display: flex; flex-wrap: wrap; gap: 6px; }
 .menu .menu-link { display: flex; gap: 10px; width: 100%; padding: 10px; border-radius: var(--radius-sm); text-decoration: none; color: var(--text); align-items: flex-start; }
 .menu .menu-link:hover { background: var(--surface-2); }
+.thumb-vt-positron { background: linear-gradient(135deg, #f2f3f0 30%, #ffffff 30% 34%, #f2f3f0 34% 64%, #d4dadc 64%); }
+.thumb-vt-bright { background: linear-gradient(135deg, #f8f4f0 30%, #fcd78d 30% 34%, #d8e8c8 34% 64%, #a0c8f0 64%); }
+.thumb-vt-dark { background: linear-gradient(135deg, #2b2b2b 30%, #555 30% 34%, #1f1f1f 34% 64%, #0e0e0e 64%); }
+.thumb-vt-fiord { background: linear-gradient(135deg, #45516e 30%, #5f6d8c 30% 34%, #3a4762 34% 64%, #38435c 64%); }
 .thumb-custom { background: repeating-linear-gradient(45deg, #dbe4f0 0 6px, #c5d3e6 6px 12px); }
 .legend-choose { padding: 0 2px 6px; }
 .select-compact { height: 30px; font-size: var(--fs-sm); padding: 0 6px; }

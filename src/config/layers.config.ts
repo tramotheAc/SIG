@@ -38,6 +38,8 @@ export interface BasemapDef {
   paint?: Record<string, number>;
   /** Fond uni (pas de tuiles). */
   color?: string;
+  /** Style vectoriel MapLibre / OpenMapTiles (URL du style.json) : remplace les tuiles raster. */
+  style?: string;
   meta: SourceMeta;
 }
 
@@ -130,6 +132,32 @@ export const basemaps: BasemapDef[] = [
       licence: 'Licence Ouverte Etalab 2.0',
     },
   },
+  ...(
+    [
+      ['positron', 'Positron', 'Gris clair épuré (openmaptiles/positron-gl-style) : idéal pour mettre en valeur les données.'],
+      ['bright', 'OSM Bright', 'Plan couleur détaillé (openmaptiles/osm-bright-gl-style).'],
+      ['dark', 'Dark Matter', 'Fond sombre (openmaptiles/dark-matter-gl-style) : présentations, contraste des points.'],
+      ['fiord', 'Fiord', 'Bleu-gris (openmaptiles/fiord-color-gl-style).'],
+    ] as const
+  ).map(([id, label, note]): BasemapDef => ({
+    id: `vt-${id}`,
+    label,
+    tiles: [],
+    style: `https://tiles.openfreemap.org/styles/${id}`,
+    attribution: '© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors',
+    maxzoom: 22,
+    meta: {
+      source: `OpenFreeMap – style ${label} (OpenMapTiles, sans clé API)`,
+      type: 'Tuiles vectorielles (style MapLibre)',
+      endpoint: `https://tiles.openfreemap.org/styles/${id}`,
+      millesime: 'OpenStreetMap, mise à jour hebdomadaire',
+      format: 'MVT (PBF)',
+      crs: 'EPSG:3857',
+      frequence: 'Hebdomadaire',
+      licence: 'ODbL (données OSM) – styles BSD / CC-BY (OpenMapTiles)',
+      note,
+    },
+  })),
 ];
 
 /* ------------------------------------------------------------------ */

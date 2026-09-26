@@ -148,7 +148,7 @@ export async function renderTemplateImage(tpl: ExportTemplate, type: ZoneType, i
       map.once('error', (e) => reject(e.error));
       setTimeout(() => reject(new Error('Délai dépassé au chargement de la carte')), 20000);
     });
-    applyBasemap(map, basemapOf(tpl));
+    await applyBasemap(map, basemapOf(tpl));
     ensurePatrimoineLayers(map);
     applyRepresentation(map, style);
     updatePatrimoineData(map, index, view, style, map.getZoom(), { pieImages: new Set() }, 'export');

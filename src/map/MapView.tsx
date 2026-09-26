@@ -88,7 +88,7 @@ export function MapView() {
     m.addControl(new NavigationControl({ showCompass: false }), 'bottom-right');
     m.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-right');
     m.on('load', () => {
-      applyBasemap(m, useAppStore.getState().basemap);
+      void applyBasemap(m, useAppStore.getState().basemap);
       ensurePatrimoineLayers(m);
       refManager.current = new ReferenceLayerManager(m);
       mapRef.current = m;
@@ -159,7 +159,7 @@ export function MapView() {
 
   /* Fond de carte */
   useEffect(() => {
-    if (map) applyBasemap(map, basemap);
+    if (map) void applyBasemap(map, basemap);
   }, [map, basemap]);
 
   /* Représentation / style patrimoine */
