@@ -2,7 +2,7 @@
  * Export Excel du périmètre courant (filtres + catégories visibles).
  * Les colonnes sont celles du MODÈLE MÉTIER (libellés lisibles), pas celles de la source.
  */
-import { activeFilterCount, PatrimoineIndex, type FilteredView } from '../domain/patrimoineIndex';
+import { activeFilterCount, EMPTY_FILTERS, PatrimoineIndex, type FilteredView } from '../domain/patrimoineIndex';
 import { COLOR_BY_OPTIONS, QPV_LABELS } from '../domain/symbology';
 import { useAppStore } from '../store/useAppStore';
 
@@ -40,7 +40,7 @@ export function download(blob: Blob, filename: string) {
 
 const stamp = () => new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
 
-export async function exportExcel(view: FilteredView) {
+export async function exportExcel(view: FilteredView, opts: { zone?: string; filename?: string } = {}) {
   const s = useAppStore.getState();
   const ix = s.index!;
   const geo = (g: ReturnType<PatrimoineIndex['geoOf']>) => ({
@@ -106,17 +106,25 @@ export async function exportExcel(view: FilteredView) {
     { Paramètre: 'Date d’export', Valeur: new Date().toLocaleString('fr-FR') },
     { Paramètre: 'Source des données', Valeur: s.dataset?.source.label },
     { Paramètre: 'Données synthétiques', Valeur: s.dataset?.source.synthetic ? 'OUI — ne correspondent à aucun patrimoine réel' : 'Non' },
-    { Paramètre: 'Filtres actifs', Valeur: activeFilterCount(s.filters) ? JSON.stringify(s.filters) : 'Aucun' },
+    ...(opts.zone ? [{ Paramètre: 'Zone', Valeur: opts.zone }] : [{ Paramètre: 'Filtres actifs', Valeur: activeFilterCount(s.filters) ? JSON.stringify(s.filters) : 'Aucun' }]),
     { Paramètre: 'Coloration', Valeur: COLOR_BY_OPTIONS.find((o) => o.key === s.patrimoine.colorBy)?.label },
     { Paramètre: 'Résidences', Valeur: view.totals.residences },
     { Paramètre: 'Logements', Valeur: view.totals.logements },
   ];
-  await writeWorkbook(`atlas-patrimoine-${stamp()}.xlsx`, [
+  await writeWorkbook(opts.filename ?? `atlas-patrimoine-${stamp()}.xlsx`, [
     { name: 'Contexte', rows: info },
     { name: 'Résidences', rows: residences },
     ...(batiments.length ? [{ name: 'Bâtiments', rows: batiments }] : []),
     { name: 'Logements', rows: logements },
   ]);
+}
+
+/** Export du patrimoine d'une zone (commune, QPV, quartier…) depuis sa fiche, indépendamment des filtres. */
+export async function exportZoneExcel(zone: string, residenceIds: string[]) {
+  const s = useAppStore.getState();
+  const view = s.index!.compute({ ...EMPTY_FILTERS, residences: residenceIds }, s.patrimoine.colorBy, new Set());
+  const slug = zone.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+  await exportExcel(view, { zone, filename: `patrimoine-${slug}-${stamp()}.xlsx` });
 }
 
 /** Export d'un tableau d'analyse. */

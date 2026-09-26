@@ -197,10 +197,16 @@ export async function renderTemplateImage(tpl: ExportTemplate, type: ZoneType, i
 
 const slugOf = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
 
-export async function downloadTemplateImage(tpl: ExportTemplate, type: ZoneType, id: string) {
+export type ImageFormat = 'png' | 'pdf';
+
+export async function downloadTemplateImage(tpl: ExportTemplate, type: ZoneType, id: string, format: ImageFormat = 'png') {
   const blob = await renderTemplateImage(tpl, type, id);
   const index = useAppStore.getState().index!;
-  download(blob, `${tpl.id}-${slugOf(zoneName(index, type, id))}.png`);
+  const name = zoneName(index, type, id);
+  if (format === 'pdf') {
+    const { imagesToPdf, pngToPdfPage } = await import('./pdf');
+    download(imagesToPdf([await pngToPdfPage(blob)], tpl.title.replace('{zone}', name)), `${tpl.id}-${slugOf(name)}.pdf`);
+  } else download(blob, `${tpl.id}-${slugOf(name)}.png`);
 }
 
 /**
@@ -213,12 +219,15 @@ export async function downloadTemplateImages(
   ids: string[],
   onProgress?: (done: number, total: number, label: string) => void,
   signal?: { cancelled: boolean },
+  format: ImageFormat = 'png',
 ): Promise<{ ok: number; failed: string[] }> {
   if (ids.length === 1) {
-    await downloadTemplateImage(tpl, type, ids[0]);
+    await downloadTemplateImage(tpl, type, ids[0], format);
     return { ok: 1, failed: [] };
   }
   const index = useAppStore.getState().index!;
+  const pdf = format === 'pdf' ? await import('./pdf') : undefined;
+  const pages: import('./pdf').PdfPage[] = [];
   const files: Record<string, Uint8Array> = {};
   const failed: string[] = [];
   const used = new Set<string>();
@@ -228,6 +237,10 @@ export async function downloadTemplateImages(
     onProgress?.(i, ids.length, name);
     try {
       const blob = await renderTemplateImage(tpl, type, ids[i]);
+      if (pdf) {
+        pages.push(await pdf.pngToPdfPage(blob));
+        continue;
+      }
       let file = `${String(i + 1).padStart(3, '0')}-${slugOf(name) || ids[i]}.png`;
       while (used.has(file)) file = file.replace('.png', '-bis.png');
       used.add(file);
@@ -238,6 +251,10 @@ export async function downloadTemplateImages(
     }
   }
   onProgress?.(ids.length, ids.length, '');
+  if (pdf) {
+    if (pages.length) download(pdf.imagesToPdf(pages, tpl.name), `${tpl.id}-${slugOf(ZONE_LABELS[type])}-${pages.length}-pages.pdf`);
+    return { ok: pages.length, failed };
+  }
   const n = Object.keys(files).length;
   if (n) {
     const { zipSync } = await import('fflate');

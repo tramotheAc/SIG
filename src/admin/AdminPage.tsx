@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   CATALOG,
   CONTROL_LABELS,
@@ -26,6 +26,7 @@ import {
 } from '../config/siteConfig';
 import type { SourceMeta } from '../config/layers.config';
 import { COLOR_BY_OPTIONS } from '../domain/symbology';
+import { checkDataQuality, qualityScore } from '../domain/dataQuality';
 import { DataSourcePanel } from '../ui/DataSourcePanel';
 import { describeResponse, modernizeIgnUrl, parseWms, parseWmts, type OgcLayer } from './ogcCapabilities';
 import type { CustomBasemap, CustomLayer } from '../config/siteConfig';
@@ -38,9 +39,10 @@ import { useAppStore } from '../store/useAppStore';
 import { buildEmbedUrl, entityValues } from '../ui/embed';
 import type { EntityRef } from '../domain/model';
 
-type Section = 'donnees' | 'fonds' | 'couches' | 'exports' | 'tableaux' | 'interface' | 'services' | 'publication';
+type Section = 'donnees' | 'qualite' | 'fonds' | 'couches' | 'exports' | 'tableaux' | 'interface' | 'services' | 'publication';
 const SECTIONS: { id: Section; label: string; icon: string; help: string }[] = [
   { id: 'donnees', label: 'Données patrimoine', icon: 'database', help: 'Source Excel publiée, import et contrôle d’un fichier.' },
+  { id: 'qualite', label: 'Qualité des données', icon: 'check', help: 'Contrôles automatiques du patrimoine chargé : positions, rattachements, codes, doublons.' },
   { id: 'fonds', label: 'Fonds de carte', icon: 'image', help: 'Fonds proposés aux utilisateurs et fond par défaut.' },
   { id: 'couches', label: 'Couches', icon: 'layers', help: 'Sources (fichiers, API), style par défaut et réglages laissés aux utilisateurs.' },
   { id: 'exports', label: 'Exports types', icon: 'image', help: 'Modèles de cartes et d’images proposés aux utilisateurs : zone, couches, symbologie, format, cadrage.' },
@@ -123,6 +125,7 @@ export function AdminPage() {
 
         <div className="admin-body">
           {section === 'donnees' && <DonneesSection cfg={cfg} update={update} />}
+          {section === 'qualite' && <QualiteSection />}
           {section === 'fonds' && <FondsSection cfg={cfg} update={update} />}
           {section === 'couches' && <CouchesSection cfg={cfg} update={update} />}
           {section === 'exports' && <ExportsSection cfg={cfg} update={update} />}
@@ -614,6 +617,91 @@ const REPRESENTATIONS = [
   ['logement', 'Logements'],
 ] as const;
 
+const LEVEL_LABELS = { erreur: 'Erreur', alerte: 'Alerte', info: 'Info' } as const;
+
+function QualiteSection() {
+  const dataset = useAppStore((s) => s.dataset);
+  const index = useAppStore((s) => s.index);
+  const geoVersion = useAppStore((s) => s.geoVersion);
+  const [open, setOpen] = useState<string>();
+  const [onlyIssues, setOnlyIssues] = useState(true);
+  const checks = useMemo(() => {
+    if (!dataset) return [];
+    const known = index?.communes.size ? new Set(index.communes.keys()) : undefined;
+    return checkDataQuality(dataset, known);
+  }, [dataset, index, geoVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!dataset) return <Card title="Qualité des données"><p className="help">Aucune donnée chargée.</p></Card>;
+  const score = qualityScore(checks);
+  const shown = checks.filter((c) => !onlyIssues || c.count > 0);
+  const exportAll = async () => {
+    const { exportRows } = await import('../export/excelExport');
+    await exportRows(
+      'qualite-donnees',
+      checks.flatMap((c) => c.rows.map((r) => ({ Niveau: LEVEL_LABELS[c.level], Contrôle: c.label, Objet: c.objet, Code: r.code, Libellé: r.libelle, Commune: r.commune, Détail: r.detail }))),
+    );
+  };
+  const importIssues = dataset.issues.filter((i) => i.level !== 'info');
+  return (
+    <>
+      <Card
+        title="Synthèse"
+        right={<button type="button" className="btn btn-sm" onClick={exportAll} disabled={!checks.some((c) => c.count)}><Icon name="table" size={15} /> Exporter les anomalies (Excel)</button>}
+      >
+        <div className="quality-summary">
+          <div className={`quality-score ${score >= 95 ? 'is-good' : score >= 80 ? 'is-mid' : 'is-bad'}`}>
+            <strong>{score}</strong><span>/ 100</span>
+          </div>
+          <div>
+            <p><strong>{dataset.source.label}</strong> — chargé le {new Date(dataset.source.loadedAt).toLocaleString('fr-FR')}</p>
+            <p className="help">
+              {dataset.residences.length.toLocaleString('fr-FR')} résidences · {dataset.batiments.length.toLocaleString('fr-FR')} adresses · {dataset.logements.length.toLocaleString('fr-FR')} logements.
+              {' '}{checks.filter((c) => c.level === 'erreur' && c.count).length} contrôle(s) en erreur, {checks.filter((c) => c.level === 'alerte' && c.count).length} en alerte.
+              {!index?.communes.size && ' Référentiel communes non chargé : la validité des codes INSEE n’est vérifiée que sur le format.'}
+            </p>
+          </div>
+        </div>
+        <label className="admin-radio"><input type="checkbox" checked={onlyIssues} onChange={(e) => setOnlyIssues(e.target.checked)} /> Masquer les contrôles sans anomalie</label>
+      </Card>
+      <Card title="Contrôles">
+        <table className="quality-table">
+          <thead><tr><th>Niveau</th><th>Contrôle</th><th>Objet</th><th className="num">Nb</th><th className="num">%</th></tr></thead>
+          <tbody>
+            {shown.map((c) => (
+              <Fragment key={c.id}>
+                <tr className={c.count ? 'is-clickable' : ''} onClick={() => c.count && setOpen(open === c.id ? undefined : c.id)}>
+                  <td><span className={`quality-badge lvl-${c.level}`}>{LEVEL_LABELS[c.level]}</span></td>
+                  <td>{c.label}<div className="help">{c.help}</div></td>
+                  <td>{c.objet}</td>
+                  <td className="num">{c.count.toLocaleString('fr-FR')}</td>
+                  <td className="num">{c.total ? `${((100 * c.count) / c.total).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %` : '—'}</td>
+                </tr>
+                {open === c.id && (
+                  <tr className="quality-detail">
+                    <td colSpan={5}>
+                      <ul>
+                        {c.rows.slice(0, 30).map((r, i) => <li key={i}><code>{r.code}</code> {r.libelle} {r.commune && <span className="muted">— {r.commune}</span>} {r.detail && <span className="muted">({r.detail})</span>}</li>)}
+                      </ul>
+                      {c.rows.length > 30 && <p className="help">… et {c.rows.length - 30} autres : voir l’export Excel.</p>}
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
+            {!shown.length && <tr><td colSpan={5} className="help">Aucune anomalie détectée.</td></tr>}
+          </tbody>
+        </table>
+      </Card>
+      {importIssues.length > 0 && (
+        <Card title="Messages de l’import">
+          <ul className="quality-import">
+            {importIssues.map((i, k) => <li key={k}><span className={`quality-badge lvl-${i.level === 'error' ? 'erreur' : 'alerte'}`}>{i.level === 'error' ? 'Erreur' : 'Alerte'}</span> {i.message}{i.count ? ` (${i.count})` : ''}{i.context && <span className="muted"> — {i.context}</span>}</li>)}
+          </ul>
+        </Card>
+      )}
+    </>
+  );
+}
+
 function ExportsSection({ cfg, update }: Props) {
   const add = (from?: ExportTemplate) =>
     update((c) => {
@@ -636,6 +724,65 @@ function ExportsSection({ cfg, update }: Props) {
         <button type="button" className="btn btn-primary" onClick={() => add()}>+ Ajouter un modèle</button>
       </div>
     </>
+  );
+}
+
+/** Aperçu d'un modèle d'export sur une zone réelle, avant publication. */
+function TemplatePreview({ t }: { t: ExportTemplate }) {
+  const index = useAppStore((s) => s.index);
+  const [type, setType] = useState<ZoneType>(t.zoneTypes[0] ?? 'commune');
+  const [zone, setZone] = useState('');
+  const [img, setImg] = useState<string>();
+  const [state, setState] = useState<'idle' | 'busy' | 'error'>('idle');
+  const [options, setOptions] = useState<{ value: string; label: string }[]>([]);
+  const zt = t.zoneTypes.includes(type) ? type : t.zoneTypes[0];
+  const loadOptions = async () => {
+    if (!index || !zt) return;
+    const { zoneOptions } = await import('../export/templateExport');
+    const o = zoneOptions(index, zt);
+    setOptions(o);
+    if (!o.some((x) => x.value === zone)) setZone(o[0]?.value ?? '');
+  };
+  const run = async () => {
+    if (!zt || !zone) return;
+    setState('busy');
+    try {
+      const { renderTemplateImage } = await import('../export/templateExport');
+      const blob = await renderTemplateImage(t, zt, zone);
+      if (img) URL.revokeObjectURL(img);
+      setImg(URL.createObjectURL(blob));
+      setState('idle');
+    } catch (e) {
+      console.error(e);
+      setState('error');
+    }
+  };
+  if (!zt) return null;
+  return (
+    <details className="admin-meta" onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && void loadOptions()}>
+      <summary>Aperçu du modèle</summary>
+      {!index && <p className="help">Les données patrimoine ne sont pas encore chargées.</p>}
+      {index && (
+        <div className="admin-preview">
+          <div className="admin-inline">
+            {t.zoneTypes.length > 1 && (
+              <select className="select" value={zt} onChange={(e) => { setType(e.target.value as ZoneType); setTimeout(loadOptions); }}>
+                {t.zoneTypes.map((z) => <option key={z} value={z}>{ZONE_LABELS[z]}</option>)}
+              </select>
+            )}
+            <select className="select" value={zone} onChange={(e) => setZone(e.target.value)} onFocus={() => !options.length && void loadOptions()}>
+              {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <button type="button" className="btn btn-primary btn-sm" disabled={!zone || state === 'busy'} onClick={run}>
+              {state === 'busy' ? 'Génération…' : img ? 'Actualiser l’aperçu' : 'Générer l’aperçu'}
+            </button>
+          </div>
+          <p className="help">Rendu exact de l’image ({t.width}×{t.height} px, ×{t.pixelRatio}) avec les réglages ci-dessus, même non publiés. Les fonds et couches utilisés sont ceux de la configuration active.</p>
+          {state === 'error' && <p className="admin-error">Aperçu impossible : zone sans position ou couche indisponible.</p>}
+          {img && <a href={img} target="_blank" rel="noopener noreferrer"><img className="admin-preview-img" src={img} alt={`Aperçu du modèle ${t.name}`} /></a>}
+        </div>
+      )}
+    </details>
   );
 }
 
@@ -741,6 +888,7 @@ function TemplateCard({ t, cfg, set, onDuplicate, onDelete }: { t: ExportTemplat
           </select>
         </Field>
       </div>
+      <TemplatePreview t={t} />
     </Card>
   );
 }

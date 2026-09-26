@@ -11,13 +11,18 @@ import { colorRegistry } from '../store/colorRegistry';
 import { useAppStore } from '../store/useAppStore';
 import { download } from './excelExport';
 
-export async function exportImage(view: FilteredView) {
+export async function exportImage(view: FilteredView, format: 'png' | 'pdf' = 'png') {
   const map = mapRef.current;
   if (!map) throw new Error('Carte non initialisée');
   const s = useAppStore.getState();
   const colorLabel = COLOR_BY_OPTIONS.find((o) => o.key === s.patrimoine.colorBy)?.label ?? '';
-  const blob = await composeMapImage(map, view, { title: `Patrimoine — ${colorLabel}` });
-  download(blob, `carte-patrimoine-${new Date().toISOString().slice(0, 10)}.png`);
+  const title = `Patrimoine — ${colorLabel}`;
+  const blob = await composeMapImage(map, view, { title });
+  const name = `carte-patrimoine-${new Date().toISOString().slice(0, 10)}`;
+  if (format === 'pdf') {
+    const { imagesToPdf, pngToPdfPage } = await import('./pdf');
+    download(imagesToPdf([await pngToPdfPage(blob)], title), `${name}.pdf`);
+  } else download(blob, `${name}.png`);
 }
 
 export interface ComposeOptions {

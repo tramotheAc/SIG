@@ -420,3 +420,12 @@ h1, h2, h3 { margin: 0; }
 .tpl-progress-bar { height: 6px; border-radius: 3px; background: var(--border, #e3e7ec); overflow: hidden; }
 .tpl-progress-bar span { display: block; height: 100%; background: var(--primary, #3560a4); transition: width .25s ease; }
 .tpl-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Vues enregistrées */
+.views-menu { width: 320px; }
+.views-save { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--border, #e3e7ec); border-bottom: 1px solid var(--border, #e3e7ec); }
+.views-save .input { flex: 1; min-width: 0; }
+.menu-sep { padding: 8px 12px 2px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted, #6b7785); }
+.views-item { display: flex; align-items: center; padding-right: 6px; }
+.views-item > .grow { flex: 1; min-width: 0; }
+.menu-foot { display: flex; justify-content: flex-end; padding: 6px 8px; border-top: 1px solid var(--border, #e3e7ec); }

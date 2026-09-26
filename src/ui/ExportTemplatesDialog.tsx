@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePopIn } from './motion';
 import { createPortal } from 'react-dom';
 import { siteConfig, ZONE_LABELS, type TemplateOutput, type ZoneType } from '../config/siteConfig';
-import { applyTemplateToMap, downloadTemplateImages, zoneOptions } from '../export/templateExport';
+import { applyTemplateToMap, downloadTemplateImages, zoneOptions, type ImageFormat } from '../export/templateExport';
 import { useAppStore } from '../store/useAppStore';
 import { Icon } from './components/Icon';
 import { normalize } from '../domain/search';
 
-const OUTPUT_LABELS: Record<TemplateOutput, string> = { carte: 'Carte dynamique', image: 'Image (PNG)', 'les-deux': 'Carte + image' };
+const OUTPUT_LABELS: Record<TemplateOutput, string> = { carte: 'Carte dynamique', image: 'Image / PDF', 'les-deux': 'Carte + image' };
 
 /** Exports types : modèle (défini en admin) + zone → carte cadrée et/ou image. */
 export function ExportTemplatesDialog({ onClose }: { onClose: () => void }) {
@@ -25,6 +25,7 @@ export function ExportTemplatesDialog({ onClose }: { onClose: () => void }) {
   const cancel = useRef({ cancelled: false });
   const [output, setOutput] = useState<TemplateOutput>(tpl?.output ?? 'les-deux');
   const [busy, setBusy] = useState(false);
+  const [format, setFormat] = useState<ImageFormat>('png');
   const dlg = useRef<HTMLDivElement>(null);
   usePopIn(dlg, 'scale');
 
@@ -71,8 +72,8 @@ export function ExportTemplatesDialog({ onClose }: { onClose: () => void }) {
     try {
       let msg = zones.length > 1 ? `Carte cadrée sur ${zones.length} zones.` : 'Carte cadrée sur la zone.';
       if (output !== 'carte') {
-        const r = await downloadTemplateImages(tpl, zoneType, zones, (done, total, label) => setProgress({ done, total, label }), cancel.current);
-        msg = zones.length > 1 ? `${r.ok} image(s) générée(s) dans un ZIP.` : 'Image générée.';
+        const r = await downloadTemplateImages(tpl, zoneType, zones, (done, total, label) => setProgress({ done, total, label }), cancel.current, format);
+        msg = zones.length > 1 ? (format === 'pdf' ? `PDF de ${r.ok} page(s) généré.` : `${r.ok} image(s) générée(s) dans un ZIP.`) : format === 'pdf' ? 'PDF généré.' : 'Image générée.';
         if (cancel.current.cancelled) msg = `Export interrompu : ${r.ok} image(s) générée(s).`;
         if (r.failed.length) msg += ` ${r.failed.length} zone(s) ignorée(s) (sans position) : ${r.failed.slice(0, 5).join(', ')}${r.failed.length > 5 ? '…' : ''}`;
       }
@@ -172,8 +173,23 @@ export function ExportTemplatesDialog({ onClose }: { onClose: () => void }) {
                   ))}
                 </div>
               </div>
+              {output !== 'carte' && (
+                <div className="field">
+                  <div className="field-label">Format</div>
+                  <div className="segmented" role="radiogroup" aria-label="Format">
+                    {(['png', 'pdf'] as ImageFormat[]).map((f) => (
+                      <button key={f} type="button" role="radio" aria-checked={f === format} className={f === format ? 'is-active' : ''} onClick={() => setFormat(f)}>
+                        {f === 'png' ? 'Image PNG' : 'PDF (A4)'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {output !== 'carte' && zones.length > 1 && (
-                <p className="help">Une image par zone ({zones.length}), regroupées dans un fichier ZIP.{zones.length > 60 ? ' Comptez quelques secondes par image.' : ''}</p>
+                <p className="help">
+                  {format === 'pdf' ? `Un seul PDF, une page par zone (${zones.length}).` : `Une image par zone (${zones.length}), regroupées dans un fichier ZIP.`}
+                  {zones.length > 60 ? ' Comptez quelques secondes par zone.' : ''}
+                </p>
               )}
               {progress && (
                 <div className="tpl-progress" aria-live="polite">
@@ -186,7 +202,7 @@ export function ExportTemplatesDialog({ onClose }: { onClose: () => void }) {
                   <button type="button" className="btn" onClick={() => (cancel.current.cancelled = true)}>Arrêter</button>
                 )}
                 <button type="button" className="btn btn-primary" disabled={!zones.length || busy} onClick={run}>
-                  <Icon name={output === 'carte' ? 'pin' : 'download'} size={16} /> {busy ? 'Génération…' : zones.length > 1 && output !== 'carte' ? `Générer ${zones.length} images` : 'Générer'}
+                  <Icon name={output === 'carte' ? 'pin' : 'download'} size={16} /> {busy ? 'Génération…' : zones.length > 1 && output !== 'carte' ? (format === 'pdf' ? `Générer le PDF (${zones.length} pages)` : `Générer ${zones.length} images`) : 'Générer'}
                 </button>
               </div>
             </>

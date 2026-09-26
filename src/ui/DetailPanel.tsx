@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { cascade, popIn } from './motion';
 import { appConfig } from '../config/app.config';
 import type { Batiment, EntityRef, Responsables, GeoContext, GeoPoint, Logement, Residence } from '../domain/model';
@@ -423,6 +423,7 @@ function AreaFiche({ kind, code, index }: { kind: 'commune' | 'epci'; code: stri
           <Icon name="filter" size={15} /> Filtrer sur {kind === 'commune' ? 'cette commune' : 'cet EPCI'}
         </button>
         <ZoomBtn target={{ kind, id: code }} />
+        <ExcelZoneBtn zone={nom} residences={residences} />
       </Actions>
       {kind === 'commune' && (
         <Fields rows={[['EPCI', commune?.epciCode ? <Link to={{ kind: 'epci', id: commune.epciCode }}>{commune.epciNom ?? commune.epciCode}</Link> : undefined], ['Département', commune?.departement], ['Population (INSEE)', commune?.population ? fmt(commune.population) : undefined]]} />
@@ -441,6 +442,35 @@ function AreaFiche({ kind, code, index }: { kind: 'commune' | 'epci'; code: stri
       )}
       {kind === 'commune' && residences.length > 0 && <ResidenceList residences={residences} />}
     </>
+  );
+}
+
+function ExcelZoneBtn({ zone, residences }: { zone: string; residences: Residence[] }) {
+  const notify = useAppStore((s) => s.notify);
+  const [busy, setBusy] = useState(false);
+  if (!residences.length) return null;
+  return (
+    <button
+      type="button"
+      className="btn btn-ghost btn-sm"
+      disabled={busy}
+      title="Résidences, bâtiments et logements de la zone (indépendant des filtres)"
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const { exportZoneExcel } = await import('../export/excelExport');
+          await exportZoneExcel(zone, residences.map((r) => r.id));
+          notify('Fichier Excel de la zone généré.', 'success');
+        } catch (e) {
+          console.error(e);
+          notify('L’export Excel a échoué.', 'error');
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <Icon name="table" size={15} /> {busy ? 'Export…' : 'Excel'}
+    </button>
   );
 }
 
@@ -479,6 +509,7 @@ function AgenceFiche({ id, index }: { id: string; index: PatrimoineIndex }) {
           <Icon name="filter" size={15} /> Filtrer sur cette agence
         </button>
         <ZoomBtn target={{ kind: 'agence', id }} />
+        <ExcelZoneBtn zone={a.nom} residences={residences} />
       </Actions>
       <Fields rows={[['Code', a.code]]} />
       <div className="detail-block">
@@ -519,6 +550,7 @@ function QpvFiche({ sel, index }: { sel: EntityRef; index: PatrimoineIndex }) {
         <button type="button" className="btn btn-primary btn-sm" onClick={() => setFilters({ qpv: ['en_qpv', 'moins_300m'] })}>
           <Icon name="filter" size={15} /> Patrimoine en QPV et à moins de 300 m
         </button>
+        <ExcelZoneBtn zone={`QPV ${String(p.nom ?? sel.id)} (et 300 m)`} residences={[...inside, ...near]} />
       </Actions>
       <Fields rows={extra.map(([k, v]) => [k, String(v)])} title="Attributs de la source" />
       {inside.length > 0 && <ResidenceList residences={inside} title="Résidences dans le QPV" />}
@@ -628,6 +660,7 @@ function ZoneFiche({ sel, index }: { sel: EntityRef; index: PatrimoineIndex }) {
         <button type="button" className="btn btn-ghost btn-sm" disabled={!bounds} onClick={() => bounds && flyTo({ bounds, zoom: 16 })}>
           <Icon name="zoom" size={15} /> Zoomer sur la zone
         </button>
+        <ExcelZoneBtn zone={`${def?.label ?? 'Zone'} ${title}`} residences={inside} />
       </Actions>
       <Fields title="Attributs" rows={attrs.map(([k, v]) => [k.replace(/_/g, ' '), String(v)])} />
       {inside.length > 0 && breakdown(index, inside)}

@@ -9,6 +9,8 @@ import { AdminPage } from './admin/AdminPage';
 import { LeftPanel } from './ui/LeftPanel';
 import { MapOverlays } from './ui/MapOverlays';
 import { EmbedViewer } from './ui/EmbedViewer';
+import { useAppStore } from './store/useAppStore';
+import { applyView, viewFromLocation } from './store/viewState';
 
 /**
  * Point d'entrée : le DataProvider est choisi ICI (et seulement ici).
@@ -27,6 +29,15 @@ export default function App() {
   useEffect(() => {
     void loadData(configuredProvider());
   }, []);
+  // Lien partagé (#v=…) : la vue est appliquée une fois les données prêtes.
+  const ready = useAppStore((s) => s.status === 'ready');
+  useEffect(() => {
+    if (!ready || admin) return;
+    const v = viewFromLocation();
+    if (!v) return;
+    applyView(v);
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }, [ready, admin]);
   if (admin) return <AdminPage />;
   return (
     <div className="app">

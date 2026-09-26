@@ -8,6 +8,7 @@ import { useFilteredView } from '../store/useFilteredView';
 import { Icon } from './components/Icon';
 import { SearchBox } from './SearchBox';
 import { ExportTemplatesDialog } from './ExportTemplatesDialog';
+import { ViewsMenu } from './ViewsMenu';
 import { buildEmbedUrl, menuEmbeds } from './embed';
 
 export function Header() {
@@ -45,6 +46,7 @@ export function Header() {
       </div>
       <SearchBox />
       <div className="header-actions">
+        <ViewsMenu />
         {siteConfig.ui.exportTemplates && siteConfig.exportTemplates.length > 0 && (
           <button type="button" className="btn btn-ghost" disabled={!view} onClick={() => setTemplates(true)} title="Cartes et images prêtes à l’emploi">
             <Icon name="image" />
@@ -97,6 +99,13 @@ export function Header() {
                 <span>
                   Carte + légende (PNG)
                   <small>Vue actuelle, avec titre et légende</small>
+                </span>
+              </button>}
+              {siteConfig.ui.exportImage && <button type="button" role="menuitem" onClick={() => run(() => exportImage(view, 'pdf'), 'PDF de la carte généré.')}>
+                <Icon name="file" />
+                <span>
+                  Carte + légende (PDF)
+                  <small>Même rendu, au format A4</small>
                 </span>
               </button>}
             </div>

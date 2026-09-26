@@ -27,6 +27,10 @@ const PATHS: Record<string, string> = {
   database: 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zm0 0v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
   external: 'M14 4h6v6m0-6-9 9M18 14v6H4V6h6',
   check: 'M4 12l5 5L20 6',
+  link: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
+  bookmark: 'M6 3h12v18l-6-4-6 4z',
+  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
+  file: 'M6 3h8l4 4v14H6zM14 3v4h4',
   user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0',
 };
 

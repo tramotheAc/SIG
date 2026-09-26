@@ -225,7 +225,7 @@ export class ReferenceLayerManager {
   private loaderFor(def: ReferenceLayerDef, ctx: RefContext): Loader | undefined {
     const k = def.kind;
     if (k.type === 'geojson-url') {
-      if (def.id === 'qpv') return async () => referentiels.qpvFc ?? withCodes(await fetchGeoJson(k.url));
+      if (def.id === 'qpv') return async () => withCodes(referentiels.qpvFc ?? (await fetchGeoJson(k.url)));
       return async () => withCodes(await fetchGeoJson(k.url));
     }
     if (k.type !== 'service') return undefined;

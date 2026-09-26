@@ -175,3 +175,31 @@ describe('Référentiels fichiers tolérants', () => {
     expect(lat).toBeCloseTo(48.11, 1);
   });
 });
+
+import { checkDataQuality, qualityScore } from '../src/domain/dataQuality';
+
+describe('checkDataQuality', () => {
+  it('détecte positions absentes, INSEE invalides, orphelins et doublons', () => {
+    const base = { batimentIds: [], responsables: {}, positionSource: 'source' as const };
+    const ds = {
+      agences: [],
+      residences: [
+        { ...base, id: 'r1', code: 'R1', nom: 'A', nbLogements: 1, agenceId: 'a', communeInsee: '35238', position: { lon: -1.68, lat: 48.11 } },
+        { ...base, id: 'r2', code: 'R1', nom: 'B', nbLogements: 0, communeInsee: '3523', positionSource: 'absente' as const },
+      ],
+      batiments: [{ id: 'b1', code: 'B1', libelle: 'x', residenceId: 'zz', cageIds: [], logementIds: [], nbLogements: 0, responsables: {}, positionSource: 'absente' as const }],
+      cages: [],
+      logements: [{ id: 'l1', code: 'L1', responsables: {}, positionSource: 'absente' as const, residenceId: 'r1', typeLot: 'T2', financement: 'PLUS' }],
+      issues: [],
+      source: { kind: 'memory' as const, label: 't', loadedAt: '', synthetic: true },
+    };
+    const c = Object.fromEntries(checkDataQuality(ds).map((x) => [x.id, x.count]));
+    expect(c['res-sans-position']).toBe(1);
+    expect(c['insee-invalide']).toBe(1);
+    expect(c['res-doublon']).toBe(1);
+    expect(c['bat-orphelin']).toBe(1);
+    expect(c['lgt-orphelin']).toBe(0);
+    expect(c['res-sans-agence']).toBe(1);
+    expect(qualityScore(checkDataQuality(ds))).toBeLessThan(100);
+  });
+});

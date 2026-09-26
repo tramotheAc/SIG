@@ -51,3 +51,30 @@
 .admin-caps { margin-top: 6px; max-height: 260px; }
 .admin-code { display: block; white-space: pre-wrap; word-break: break-all; padding: 8px 10px; }
 .admin-preview { width: 100%; height: 520px; border: 1px solid var(--bord); border-radius: var(--radius-sm); background: #fff; }
+
+/* Aperçu des exports types */
+.admin-preview { display: grid; gap: 8px; margin-top: 8px; }
+.admin-preview .select { max-width: 320px; }
+.admin-preview-img { display: block; max-width: 100%; max-height: 420px; width: auto; height: auto; border: 1px solid var(--border, #e3e7ec); border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+.admin-error { color: #c92a2a; }
+
+/* Qualité des données */
+.quality-summary { display: flex; gap: 20px; align-items: center; margin-bottom: 10px; }
+.quality-summary p { margin: 0 0 4px; }
+.quality-score { display: flex; align-items: baseline; gap: 4px; padding: 12px 18px; border-radius: 10px; background: #f1f3f5; }
+.quality-score strong { font-size: 32px; line-height: 1; }
+.quality-score.is-good strong { color: #2b8a3e; }
+.quality-score.is-mid strong { color: #e67700; }
+.quality-score.is-bad strong { color: #c92a2a; }
+.quality-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.quality-table th { text-align: left; font-weight: 600; color: var(--muted, #6b7785); border-bottom: 1px solid var(--border, #e3e7ec); padding: 6px 8px; }
+.quality-table td { border-bottom: 1px solid var(--border, #eef1f4); padding: 8px; vertical-align: top; }
+.quality-table .num { text-align: right; white-space: nowrap; }
+.quality-table tr.is-clickable { cursor: pointer; }
+.quality-table tr.is-clickable:hover { background: #f8f9fa; }
+.quality-detail td { background: #f8f9fa; }
+.quality-detail ul, .quality-import { margin: 0; padding-left: 18px; }
+.quality-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.lvl-erreur { background: #ffe3e3; color: #c92a2a; }
+.lvl-alerte { background: #fff3bf; color: #a35f00; }
+.lvl-info { background: #e7f5ff; color: #1864ab; }
