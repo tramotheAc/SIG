@@ -252,7 +252,7 @@ const tpl = (t: Partial<ExportTemplate> & Pick<ExportTemplate, 'id' | 'name'>): 
   description: '',
   zoneTypes: ['commune'],
   title: '{zone}',
-  basemap: 'neutre',
+  basemap: 'vt-positron',
   layers: [],
   colorBy: 'agence',
   sizeMode: 'logements',
@@ -325,7 +325,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = clone({
     },
   },
   basemaps: basemaps.map((b) => ({ id: b.id, enabled: true, label: b.label, tiles: b.tiles, ...(b.style ? { style: b.style } : {}) })),
-  defaultBasemap: basemaps[0].id,
+  defaultBasemap: 'vt-positron',
   layers: referenceLayers.map(layerToSetting),
   ui: {
     tabs: { patrimoine: true, couches: true, filtres: true, analyse: true },

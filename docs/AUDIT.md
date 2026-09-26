@@ -105,8 +105,8 @@ continue de fonctionner (fond uni de repli, couche signalée « indisponible »)
 
 | Priorité | Action | Effort |
 |---|---|---|
-| 1 | Réduire le fichier QPV au territoire | 15 min |
-| 2 | Choisir le fond par défaut (Positron / Plan IGN N&B) et trancher la licence Esri | Décision |
+| 1 | ~~Réduire le fichier QPV au territoire~~ — fait : 9,3 Mo → 214 Ko (79 QPV, 9 départements) | ✅ |
+| 2 | ~~Choisir le fond par défaut~~ — Positron par défaut (carte et exports types) | ✅ |
 | 3 | Héberger les polices des libellés dans le site | 1 h |
 | 4 | Brancher la source API (DAB) en production | Selon API |
 | 5 | Découper `AdminPage` / `DetailPanel`, ajouter ESLint | ½ journée |
