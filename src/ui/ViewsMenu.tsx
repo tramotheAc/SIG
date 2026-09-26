@@ -50,7 +50,7 @@ export function ViewsMenu() {
 
   return (
     <div className="menu-wrap" ref={wrap}>
-      <button type="button" className="btn btn-ghost" aria-haspopup="menu" aria-expanded={open} onClick={toggle} title="Partager ou enregistrer la vue">
+      <button type="button" className="btn btn-ghost" aria-haspopup="menu" aria-expanded={open} onClick={toggle} title="Partager ou enregistrer la vue" aria-label="Vues">
         <Icon name="bookmark" />
         <span className="hide-sm">Vues</span>
       </button>
@@ -83,9 +83,6 @@ export function ViewsMenu() {
             </div>
           ))}
           {!views.length && <p className="help pad">Les vues enregistrées restent dans ce navigateur. Pour partager, utilisez le lien.</p>}
-          <div className="menu-foot">
-            <button type="button" className="btn btn-sm btn-ghost" onClick={() => setOpen(false)}>Fermer</button>
-          </div>
         </div>
       )}
     </div>

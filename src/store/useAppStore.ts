@@ -10,6 +10,7 @@ import { EMPTY_FILTERS } from '../domain/patrimoineIndex';
 import type { EntityRef, GeoPoint, PatrimoineDataset, RoleKey } from '../domain/model';
 import type { ColorBy, SizeMode } from '../domain/symbology';
 import type { SearchIndex } from '../domain/search';
+import { isMobile } from '../ui/mobile';
 
 export type LayerStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'error';
 
@@ -140,7 +141,7 @@ export const useAppStore = create<State & Actions>((set, get) => ({
   },
   filters: EMPTY_FILTERS,
   leftTab: ((Object.keys(siteConfig.ui.tabs) as LeftTab[]).find((t) => siteConfig.ui.tabs[t]) ?? 'patrimoine'),
-  leftOpen: true,
+  leftOpen: !isMobile(),
   showImport: false,
   zoom: 7,
 
@@ -203,7 +204,13 @@ export const useAppStore = create<State & Actions>((set, get) => ({
     }),
   setRoleFilter: (role, values) => set((s) => ({ filters: { ...s.filters, roles: { ...s.filters.roles, [role]: values } } })),
   resetFilters: () => set((s) => ({ filters: EMPTY_FILTERS, patrimoine: { ...s.patrimoine, hidden: {} } })),
-  select: (ref) => set({ selection: ref }),
+  // Sur mobile, une fiche remplace le volet ouvert (un seul volet à la fois).
+  select: (ref) => set(ref && isMobile() ? { selection: ref, leftOpen: false } : { selection: ref }),
   flyTo: (t) => set({ flyTarget: { ...t, nonce: Date.now() + Math.random() } }),
   notify: (message, tone = 'info') => set({ toast: { message, tone, nonce: Date.now() } }),
 }));
+
+// Mobile : l'ouverture d'une fiche (carte, recherche, liens) referme le volet de gauche.
+useAppStore.subscribe((s, prev) => {
+  if (s.selection && s.selection !== prev.selection && s.leftOpen && isMobile()) useAppStore.setState({ leftOpen: false });
+});

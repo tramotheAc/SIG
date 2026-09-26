@@ -3,6 +3,7 @@ import { animate } from 'animejs';
 import { activeFilterCount } from '../domain/patrimoineIndex';
 import { mapRef } from '../map/mapRef';
 import { DUR, popIn, reducedMotion } from './motion';
+import { isMobile } from './mobile';
 import { useAppStore, type LeftTab } from '../store/useAppStore';
 import { siteConfig } from '../config/siteConfig';
 import { Icon } from './components/Icon';
@@ -33,6 +34,7 @@ export function LeftPanel() {
       return;
     }
     if (open) setMounted(true);
+    else if (panel.current && isMobile()) setMounted(false);
     else if (panel.current) {
       const el = panel.current;
       animate(el, {
@@ -56,6 +58,10 @@ export function LeftPanel() {
     }
     if (!open || !mounted || !panel.current) return;
     const el = panel.current;
+    if (isMobile()) {
+      popIn(el, 'up');
+      return;
+    }
     const w = el.offsetWidth;
     animate(el, {
       width: [0, w],
@@ -86,7 +92,7 @@ export function LeftPanel() {
             role="tab"
             aria-selected={open && tab === t.id}
             className={`rail-btn ${open && tab === t.id ? 'is-active' : ''}`}
-            onClick={() => set(open && tab === t.id ? { leftOpen: false } : { leftTab: t.id, leftOpen: true })}
+            onClick={() => set(open && tab === t.id ? { leftOpen: false } : { leftTab: t.id, leftOpen: true, ...(isMobile() ? { selection: undefined } : {}) })}
             title={t.label}
           >
             <Icon name={t.icon} size={20} />

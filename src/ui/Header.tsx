@@ -48,7 +48,7 @@ export function Header() {
       <div className="header-actions">
         <ViewsMenu />
         {siteConfig.ui.exportTemplates && siteConfig.exportTemplates.length > 0 && (
-          <button type="button" className="btn btn-ghost" disabled={!view} onClick={() => setTemplates(true)} title="Cartes et images prêtes à l’emploi">
+          <button type="button" className="btn btn-ghost" disabled={!view} onClick={() => setTemplates(true)} title="Cartes et images prêtes à l’emploi" aria-label="Exports types">
             <Icon name="image" />
             <span className="hide-sm">Exports types</span>
           </button>
@@ -56,7 +56,7 @@ export function Header() {
         {templates && <ExportTemplatesDialog onClose={() => setTemplates(false)} />}
         {links.length > 0 && (
           <div className="menu-wrap">
-            <button type="button" className="btn btn-ghost" aria-haspopup="menu" aria-expanded={dash} onClick={() => setDash(!dash)}>
+            <button type="button" className="btn btn-ghost" aria-haspopup="menu" aria-expanded={dash} onClick={() => setDash(!dash)} aria-label="Tableaux de bord">
               <Icon name="chart" />
               <span className="hide-sm">Tableaux de bord</span>
             </button>
@@ -81,7 +81,7 @@ export function Header() {
           </div>
         )}
         {(siteConfig.ui.exportExcel || siteConfig.ui.exportImage) && <div className="menu-wrap">
-          <button type="button" className="btn btn-primary" aria-haspopup="menu" aria-expanded={menu} disabled={!view || busy} onClick={() => setMenu(!menu)}>
+          <button type="button" className="btn btn-primary" aria-haspopup="menu" aria-expanded={menu} disabled={!view || busy} onClick={() => setMenu(!menu)} aria-label="Exporter">
             <Icon name="download" />
             <span className="hide-sm">{busy ? 'Export…' : 'Exporter'}</span>
           </button>
