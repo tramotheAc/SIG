@@ -40,6 +40,8 @@ import { buildEmbedUrl, entityValues } from '../ui/embed';
 import type { EntityRef } from '../domain/model';
 
 type Section = 'donnees' | 'qualite' | 'fonds' | 'couches' | 'exports' | 'tableaux' | 'interface' | 'services' | 'publication';
+/** `short` : libellé court de la barre d'onglets sur téléphone. */
+const SHORT: Record<Section, string> = { donnees: 'Données', qualite: 'Qualité', fonds: 'Fonds', couches: 'Couches', exports: 'Exports', tableaux: 'Tableaux', interface: 'Interface', services: 'Services', publication: 'Publier' };
 const SECTIONS: { id: Section; label: string; icon: string; help: string }[] = [
   { id: 'donnees', label: 'Données patrimoine', icon: 'database', help: 'Source Excel publiée, import et contrôle d’un fichier.' },
   { id: 'qualite', label: 'Qualité des données', icon: 'check', help: 'Contrôles automatiques du patrimoine chargé : positions, rattachements, codes, doublons.' },
@@ -92,14 +94,16 @@ export function AdminPage() {
         </div>
         <nav>
           {SECTIONS.map((s) => (
-            <button key={s.id} type="button" className={`admin-nav ${section === s.id ? 'is-active' : ''}`} onClick={() => setSection(s.id)}>
+            <button key={s.id} type="button" className={`admin-nav ${section === s.id ? 'is-active' : ''}`} onClick={(e) => { setSection(s.id); e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); }} aria-current={section === s.id ? 'page' : undefined}>
               <Icon name={s.icon} size={18} />
-              {s.label}
+              <span className="admin-nav-label">{s.label}</span>
+              <span className="admin-nav-short">{SHORT[s.id]}</span>
             </button>
           ))}
         </nav>
         <a className="admin-nav admin-back" href="#/">
-          <Icon name="chevronLeft" size={18} /> Retour à la carte
+          <Icon name="chevronLeft" size={18} /> <span className="admin-nav-label">Retour à la carte</span>
+          <span className="admin-nav-short">Carte</span>
         </a>
       </aside>
 
