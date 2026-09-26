@@ -171,7 +171,7 @@ h1, h2, h3 { margin: 0; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: var(--sp-2); padding: 0 var(--sp-4) var(--sp-3); }
 .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow); padding: 8px 10px; display: flex; flex-direction: column; }
 .kpi-value { font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--chiffre); }
-.kpi-label { font-size: var(--fs-xs); color: var(--text-3); }
+.kpi-label { font-size: 12px; color: var(--text-3); }
 
 /* Fonds de carte */
 .basemaps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
@@ -481,3 +481,19 @@ h1, h2, h3 { margin: 0; }
 
 .banner-draft { background: #fff4e6; border-color: #ffc078; }
 .banner-draft .link-btn { margin-left: 6px; font-weight: 600; text-decoration: underline; }
+
+/* Revue UI/UX (UI UX Pro Max) : textes ≥ 12 px ; sur téléphone, zones tactiles ≥ 44 px et champs ≥ 16 px (pas de zoom iOS) */
+.brand-sub, .zoom-badge, .banner-synthetic { font-size: 12px; }
+.rail-btn { font-size: 12px; }
+@media (max-width: 720px) {
+  .header-actions .btn, .app-header .avatar { min-width: 44px; height: 44px; }
+  .search-input { height: 44px; font-size: 16px; }
+  .input, .select, textarea, .multiselect input { font-size: 16px; min-height: 44px; }
+  .section-toggle { min-height: 48px; }
+  .icon-btn { min-width: 44px; min-height: 44px; }
+  .btn-sm { min-height: 44px; }
+  .maplibregl-ctrl-group button { width: 44px !important; height: 44px !important; }
+  .legend-main, .child-list button, .search-item { min-height: 44px; }
+  .banner-synthetic { font-size: 12px; }
+}
+.maplibregl-ctrl-scale { font-size: 12px; }

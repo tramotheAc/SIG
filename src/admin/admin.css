@@ -48,21 +48,33 @@
 .admin code { font-family: var(--font-mono); font-size: 12.5px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 /* Tablette : menu latéral plus étroit */
 .admin-nav-short { display: none; }
+.admin-more, .admin-more-sheet, .admin-more-backdrop { display: none; }
 @media (max-width: 1024px) { .admin { grid-template-columns: 210px 1fr; } }
 
 /* Téléphone : onglets en barre basse (icône + libellé court), défilable, comme la carte */
 @media (max-width: 720px) {
   .admin { grid-template-columns: 1fr; grid-template-rows: 1fr auto; height: 100dvh; }
   .admin-main { grid-row: 1; }
-  .admin-rail { grid-row: 2; flex-direction: row; gap: 0; padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); overflow-x: auto; overflow-y: hidden; background-image: none; box-shadow: 0 -2px 10px rgba(16,24,40,.12); scrollbar-width: none; }
+  .admin-rail { grid-row: 2; flex-direction: row; gap: 0; padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); background-image: none; box-shadow: 0 -2px 10px rgba(16,24,40,.12); scrollbar-width: none; }
   .admin-rail::-webkit-scrollbar { display: none; }
   .admin-brand { display: none; }
   .admin-rail nav { flex-direction: row; gap: 2px; }
-  .admin-nav { flex: none; flex-direction: column; justify-content: center; gap: 3px; min-width: 64px; padding: 6px 4px; font-size: 11px; text-align: center; }
+  .admin-rail { overflow: visible; }
+  .admin-rail nav { flex: 4; }
+  .admin-nav { flex: 1; flex-direction: column; justify-content: center; gap: 3px; min-width: 0; min-height: 52px; padding: 6px 2px; font-size: 12px; text-align: center; }
+  .admin-nav.is-secondary { display: none; }
+  .admin-back { flex: 1; }
+  .admin-more { display: flex; }
+  .admin-more-backdrop { display: block; position: fixed; inset: 0; background: rgba(15,23,32,.35); z-index: 40; }
+  .admin-more-sheet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; position: fixed; left: 0; right: 0; bottom: calc(60px + env(safe-area-inset-bottom)); padding: 12px; background: var(--surface); border-radius: 16px 16px 0 0; box-shadow: 0 -8px 24px rgba(16,24,40,.18); z-index: 41; }
+  .admin-more-sheet button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 72px; border: 1px solid var(--bord); border-radius: 12px; background: var(--surface); color: var(--encre); font-size: 13px; font-weight: 600; text-align: center; }
+  .admin-more-sheet button.is-active { border-color: var(--accent); background: var(--brand-50, #eef3fb); }
   .admin-nav.is-active { box-shadow: inset 0 3px 0 var(--blue-300); }
   .admin-nav-label { display: none; }
   .admin-nav-short { display: block; white-space: nowrap; }
-  .admin-back { order: -1; margin-top: 0; border-right: 1px solid rgb(255 255 255 / 20%); border-radius: 0; }
+  .admin-back { order: -1; margin-top: 0; }
+  .admin .input, .admin .select, .admin textarea { font-size: 16px; min-height: 44px; }
+  .admin .btn { min-height: 44px; }
   .admin-head { flex-direction: column; padding: 12px 14px 10px; gap: 8px; }
   .admin-head h1 { font-size: 18px; }
   .admin-head-actions { justify-content: flex-start; }
