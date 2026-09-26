@@ -478,3 +478,6 @@ h1, h2, h3 { margin: 0; }
   .tpl-zone-tools .select { max-width: none; }
   .embed-viewer { inset: 0 !important; }
 }
+
+.banner-draft { background: #fff4e6; border-color: #ffc078; }
+.banner-draft .link-btn { margin-left: 6px; font-weight: 600; text-decoration: underline; }

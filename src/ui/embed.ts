@@ -63,5 +63,7 @@ export function entityValues(index: PatrimoineIndex, ref: EntityRef): Record<str
 
 /** Remplace {variable} par sa valeur encodée pour une URL (vide si inconnue). */
 export function buildEmbedUrl(template: string, values: Record<string, string>): string {
-  return template.replace(/\{(\w+)\}/g, (_, k: string) => encodeURIComponent(values[k] ?? ''));
+  const url = template.trim().replace(/\{(\w+)\}/g, (_, k: string) => encodeURIComponent(values[k] ?? ''));
+  // Seuls les liens web sont ouverts (pas de javascript:, data:…) ; chemins relatifs acceptés.
+  return /^(https?:\/\/|\/|\.\/)/i.test(url) ? url : 'about:blank';
 }

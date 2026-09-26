@@ -6,6 +6,7 @@ import { Icon } from './components/Icon';
 import { Legend } from './Legend';
 import { ColorBySelect } from './ColorBySelect';
 import { LEVEL_LABELS } from './panels/PatrimoinePanel';
+import { clearDraft, siteConfigOrigin } from '../config/siteConfig';
 
 /** Éléments superposés à la carte : filtres actifs, légende, niveau, chargement, notifications. */
 export function MapOverlays() {
@@ -25,6 +26,12 @@ export function MapOverlays() {
         {dataset?.source.synthetic && (
           <div className="banner-synthetic" role="note">
             <Icon name="warning" size={14} /> Données de démonstration <strong>synthétiques</strong> — aucun patrimoine réel.
+          </div>
+        )}
+        {siteConfigOrigin === 'brouillon' && (
+          <div className="banner-synthetic banner-draft" role="note">
+            <Icon name="warning" size={14} /> Configuration <strong>brouillon</strong> (non publiée) active dans ce navigateur.
+            <button type="button" className="link-btn" onClick={() => { clearDraft(); location.reload(); }}>Revenir à la version publiée</button>
           </div>
         )}
         <ActiveFilters />

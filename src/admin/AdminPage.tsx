@@ -763,7 +763,7 @@ function TemplatePreview({ t }: { t: ExportTemplate }) {
       <summary>Aperçu du modèle</summary>
       {!index && <p className="help">Les données patrimoine ne sont pas encore chargées.</p>}
       {index && (
-        <div className="admin-preview">
+        <div className="tpl-preview">
           <div className="admin-inline">
             {t.zoneTypes.length > 1 && (
               <select className="select" value={zt} onChange={(e) => { setType(e.target.value as ZoneType); setTimeout(loadOptions); }}>

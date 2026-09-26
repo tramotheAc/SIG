@@ -77,7 +77,7 @@ export function encodeView(v: ViewState) {
 export function decodeView(code: string): ViewState | undefined {
   try {
     const v = JSON.parse(fromB64(code));
-    return v && typeof v === 'object' ? v : undefined;
+    return v && typeof v === 'object' ? sanitize(v) : undefined;
   } catch {
     return undefined;
   }
@@ -132,6 +132,30 @@ export function saveCurrentView(name: string): SavedView {
 
 export function deleteSavedView(id: string) {
   store(listSavedViews().filter((x) => x.id !== id));
+}
+
+/** Lien reçu de l'extérieur : ne garder que des valeurs du bon type. */
+function sanitize(v: Record<string, unknown>): ViewState {
+  const out: ViewState = {};
+  if (typeof v.b === 'string') out.b = v.b;
+  if (v.l && typeof v.l === 'object') out.l = Object.fromEntries(Object.entries(v.l).filter(([, o]) => typeof o === 'number' && o >= 0 && o <= 1)) as Record<string, number>;
+  if (v.p && typeof v.p === 'object') {
+    const p = v.p as Record<string, unknown>;
+    out.p = Object.fromEntries(Object.entries(p).filter(([k, x]) => ['colorBy', 'uniformColor', 'representation', 'sizeMode'].includes(k) ? typeof x === 'string' : k === 'labels' && typeof x === 'boolean'));
+    if (out.p.uniformColor && !/^#[0-9a-f]{3,8}$/i.test(out.p.uniformColor)) delete out.p.uniformColor;
+  }
+  if (v.f && typeof v.f === 'object') {
+    const f: Record<string, unknown> = {};
+    for (const [k, x] of Object.entries(v.f)) {
+      if (k === 'roles' && x && typeof x === 'object') f.roles = Object.fromEntries(Object.entries(x).filter(([, a]) => Array.isArray(a)).map(([r, a]) => [r, (a as unknown[]).map(String)]));
+      else if (k in EMPTY_FILTERS && Array.isArray(x)) f[k] = x.map(String);
+    }
+    out.f = f as Partial<Filters>;
+  }
+  if (Array.isArray(v.c) && v.c.length === 3 && v.c.every((n) => typeof n === 'number' && Number.isFinite(n))) out.c = v.c as [number, number, number];
+  const s = v.s as { k?: unknown; i?: unknown } | undefined;
+  if (s && typeof s.k === 'string' && SELECTABLE.has(s.k) && typeof s.i === 'string') out.s = { k: s.k as EntityRef['kind'], i: s.i };
+  return out;
 }
 
 function round(n: number, d: number) {
