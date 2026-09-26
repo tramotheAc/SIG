@@ -17,6 +17,7 @@ import type {
 } from './model';
 import { MISSING, QPV_LABELS, type ColorBy } from './symbology';
 import { appConfig } from '../config/app.config';
+import { regionOfDep } from './regions';
 
 export interface Filters {
   agences: string[];
@@ -29,6 +30,13 @@ export interface Filters {
   roles: Partial<Record<RoleKey, string[]>>;
   /** Codes département (2 premiers caractères du code INSEE). */
   departements?: string[];
+  /** Codes région INSEE. */
+  regions?: string[];
+  /** Codes quartier (Code_quartier). */
+  quartiers?: string[];
+  /** Adresses (Patrimoine niveau 2) et cages d'escalier (niveau 3). */
+  batiments?: string[];
+  cages?: string[];
 }
 
 export const EMPTY_FILTERS: Filters = {
@@ -41,11 +49,19 @@ export const EMPTY_FILTERS: Filters = {
   zonesPinel: [],
   roles: {},
   departements: [],
+  regions: [],
+  quartiers: [],
+  batiments: [],
+  cages: [],
 };
 
 export function activeFilterCount(f: Filters): number {
   return (
     (f.departements?.length ?? 0) +
+    (f.regions?.length ?? 0) +
+    (f.quartiers?.length ?? 0) +
+    (f.batiments?.length ?? 0) +
+    (f.cages?.length ?? 0) +
     f.agences.length +
     f.communes.length +
     f.epcis.length +
@@ -171,6 +187,24 @@ export class PatrimoineIndex {
     if (f.agences.length && !f.agences.includes(obj.agenceId ?? MISSING)) return false;
     if (f.communes.length && !f.communes.includes(obj.communeInsee ?? MISSING)) return false;
     if (f.departements?.length && !f.departements.includes((obj.communeInsee ?? '').slice(0, 2))) return false;
+    if (f.regions?.length && !f.regions.includes(regionOfDep((obj.communeInsee ?? '').slice(0, 2)) ?? MISSING)) return false;
+    if (f.quartiers?.length) {
+      const res = 'batimentIds' in obj ? obj : obj.residenceId ? this.residences.get(obj.residenceId) : undefined;
+      if (!f.quartiers.includes(res?.quartier ?? MISSING)) return false;
+    }
+    if (f.batiments?.length) {
+      const ok = 'batimentIds' in obj ? obj.batimentIds.some((b) => f.batiments!.includes(b)) : 'cageIds' in obj ? f.batiments.includes(obj.id) : f.batiments.includes(obj.batimentId ?? MISSING);
+      if (!ok) return false;
+    }
+    if (f.cages?.length) {
+      const ok =
+        'batimentIds' in obj
+          ? obj.batimentIds.some((b) => this.batiments.get(b)?.cageIds.some((c) => f.cages!.includes(c)))
+          : 'cageIds' in obj
+            ? obj.cageIds.some((c) => f.cages!.includes(c))
+            : f.cages.includes(obj.cageId ?? MISSING);
+      if (!ok) return false;
+    }
     if (f.epcis.length && !f.epcis.includes(this.epciOf(obj.communeInsee).code ?? MISSING)) return false;
     if (f.residences.length) {
       const resId = 'batimentIds' in obj ? obj.id : obj.residenceId;

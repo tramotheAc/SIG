@@ -16,7 +16,7 @@ import { COLOR_BY_OPTIONS, type ColorBy } from '../domain/symbology';
 
 export type Control = 'opacity' | 'color' | 'width' | 'size' | 'labels';
 export type TabKey = 'patrimoine' | 'couches' | 'filtres' | 'analyse';
-export type FilterKey = 'agences' | 'communes' | 'epcis' | 'residences' | 'qpv' | 'apl' | 'pinel' | 'roles';
+export type FilterKey = 'regions' | 'departements' | 'epcis' | 'communes' | 'quartiers' | 'qpv' | 'apl' | 'pinel' | 'agences' | 'residences' | 'batiments' | 'cages' | 'roles';
 
 export interface BasemapSetting {
   id: string;
@@ -207,13 +207,18 @@ export interface SiteConfig {
 
 export const TAB_LABELS: Record<TabKey, string> = { patrimoine: 'Patrimoine', couches: 'Couches', filtres: 'Filtres', analyse: 'Analyse' };
 export const FILTER_LABELS: Record<FilterKey, string> = {
-  agences: 'Agence',
-  communes: 'Commune',
+  regions: 'Région',
+  departements: 'Département',
   epcis: 'EPCI',
-  residences: 'Résidence',
+  communes: 'Commune',
+  quartiers: 'Quartier',
   qpv: 'QPV',
   apl: 'Zone APL',
   pinel: 'Zone Pinel',
+  agences: 'Agence',
+  residences: 'Ensemble résidentiel (HP1)',
+  batiments: 'Adresse (HP2)',
+  cages: 'Cage d’escalier (HP3)',
   roles: 'Responsables métier',
 };
 export const CONTROL_LABELS: Record<Control, string> = { opacity: 'Opacité', color: 'Couleur', width: 'Épaisseur', size: 'Taille', labels: 'Libellés' };
@@ -322,7 +327,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = clone({
   layers: referenceLayers.map(layerToSetting),
   ui: {
     tabs: { patrimoine: true, couches: true, filtres: true, analyse: true },
-    filters: { agences: true, communes: true, epcis: true, residences: true, qpv: true, apl: true, pinel: true, roles: true },
+    filters: { regions: true, departements: true, epcis: true, communes: true, quartiers: true, qpv: true, apl: true, pinel: true, agences: true, residences: true, batiments: true, cages: true, roles: true },
     colorBy: COLOR_BY_OPTIONS.map((o) => o.key),
     defaultColorBy: 'agence',
     exportExcel: true,

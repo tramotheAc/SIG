@@ -63,6 +63,17 @@ describe('PatrimoineIndex.compute', () => {
     expect(ix.categoryLabel('gerantImmobilier', MISSING)).toBe('Non renseigné');
   });
 
+  it('filtres région, département, quartier, adresse (HP2)', () => {
+    const d = dataset();
+    d.residences[0].quartier = 'Q1';
+    const ix2 = new PatrimoineIndex(d, communes);
+    expect(ix2.compute({ ...EMPTY_FILTERS, regions: ['53'] }, 'agence', new Set()).totals.logements).toBe(2); // Bretagne
+    expect(ix2.compute({ ...EMPTY_FILTERS, regions: ['52'] }, 'agence', new Set()).totals.logements).toBe(1); // Pays de la Loire
+    expect(ix2.compute({ ...EMPTY_FILTERS, departements: ['44'] }, 'agence', new Set()).totals.residences).toBe(2);
+    expect(ix2.compute({ ...EMPTY_FILTERS, quartiers: ['Q1'] }, 'agence', new Set()).totals.logements).toBe(2);
+    expect(ix2.compute({ ...EMPTY_FILTERS, batiments: ['b2'] }, 'agence', new Set()).totals).toMatchObject({ logements: 1, batiments: 1 });
+  });
+
   it('filtre de rôle métier', () => {
     const v = ix.compute({ ...EMPTY_FILTERS, roles: { gerantImmobilier: ['Gi 1'] } }, 'agence', new Set());
     expect(v.totals).toMatchObject({ logements: 2, residences: 1 });

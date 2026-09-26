@@ -91,7 +91,7 @@ interface Actions {
   toggleHidden: (value: string) => void;
   isolateCategory: (value: string) => void;
   setFilters: (p: Partial<Filters>) => void;
-  toggleFilterValue: <K extends Exclude<keyof Filters, 'roles' | 'departements'>>(key: K, value: Filters[K][number]) => void;
+  toggleFilterValue: <K extends Exclude<keyof Filters, 'roles' | 'departements' | 'regions' | 'quartiers' | 'batiments' | 'cages'>>(key: K, value: Filters[K][number]) => void;
   setRoleFilter: (role: RoleKey, values: string[]) => void;
   resetFilters: () => void;
   select: (ref?: EntityRef) => void;

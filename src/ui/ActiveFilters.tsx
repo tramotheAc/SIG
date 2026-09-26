@@ -2,6 +2,7 @@ import type { RoleKey } from '../domain/model';
 import { activeFilterCount, type Filters } from '../domain/patrimoineIndex';
 import { MISSING, QPV_LABELS } from '../domain/symbology';
 import { useAppStore } from '../store/useAppStore';
+import { regionName } from '../domain/regions';
 import { Icon } from './components/Icon';
 import { ROLE_LABELS } from './panels/filterOptions';
 
@@ -18,7 +19,7 @@ export function ActiveFilters() {
 
   const lab = (v: string, f: (x: string) => string | undefined) => (v === MISSING ? 'Non renseigné' : (f(v) ?? v));
   const chips: { key: string; label: string; remove: () => void }[] = [];
-  const add = <K extends Exclude<keyof Filters, 'roles' | 'departements'>>(key: K, title: string, f: (x: string) => string | undefined) => {
+  const add = <K extends Exclude<keyof Filters, 'roles' | 'departements' | 'regions' | 'quartiers' | 'batiments' | 'cages'>>(key: K, title: string, f: (x: string) => string | undefined) => {
     for (const v of filters[key] as string[]) {
       chips.push({ key: `${key}-${v}`, label: `${title} : ${lab(v, f)}`, remove: () => setFilters({ [key]: (filters[key] as string[]).filter((x) => x !== v) } as Partial<Filters>) });
     }
@@ -27,6 +28,16 @@ export function ActiveFilters() {
   add('communes', 'Commune', (v) => index.communes.get(v)?.nom);
   add('epcis', 'EPCI', (v) => [...index.communes.values()].find((c) => c.epciCode === v)?.epciNom);
   add('residences', 'Résidence', (v) => index.residences.get(v)?.nom);
+  const extra: [keyof Filters, string, (v: string) => string][] = [
+    ['regions', 'Région', (v) => regionName(v)],
+    ['quartiers', 'Quartier', (v) => v],
+    ['batiments', 'Adresse', (v) => index.batiments.get(v)?.adresse ?? v],
+    ['cages', 'Cage', (v) => { const c = index.cages.get(v); return c ? `${c.libelle} (${c.code})` : v; }],
+  ];
+  for (const [key, lab, f] of extra) {
+    const vals = (filters[key] as string[] | undefined) ?? [];
+    for (const v of vals) chips.push({ key: `${key}-${v}`, label: `${lab} : ${f(v)}`, remove: () => setFilters({ [key]: vals.filter((x) => x !== v) } as Partial<Filters>) });
+  }
   for (const d of filters.departements ?? []) chips.push({ key: `dep-${d}`, label: `Département : ${d}`, remove: () => setFilters({ departements: (filters.departements ?? []).filter((x) => x !== d) }) });
   add('qpv', 'QPV', (v) => QPV_LABELS[v as keyof typeof QPV_LABELS]);
   add('zonesApl', 'APL', (v) => `zone ${v}`);
