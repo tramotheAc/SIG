@@ -371,3 +371,7 @@ h1, h2, h3 { margin: 0; }
 .embed-head strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .embed-frame { flex: 1; width: 100%; border: 0; background: #fff; }
 .embed-bar { padding: 12px var(--sp-4) 0; }
+.embed-bar { display: flex; flex-wrap: wrap; gap: 6px; }
+.menu .menu-link { display: flex; gap: 10px; width: 100%; padding: 10px; border-radius: var(--radius-sm); text-decoration: none; color: var(--text); align-items: flex-start; }
+.menu .menu-link:hover { background: var(--surface-2); }
+.thumb-custom { background: repeating-linear-gradient(45deg, #dbe4f0 0 6px, #c5d3e6 6px 12px); }

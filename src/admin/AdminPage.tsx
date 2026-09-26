@@ -28,7 +28,7 @@ import type { SourceMeta } from '../config/layers.config';
 import { COLOR_BY_OPTIONS } from '../domain/symbology';
 import { DataSourcePanel } from '../ui/DataSourcePanel';
 import { describeResponse, modernizeIgnUrl, parseWms, parseWmts, type OgcLayer } from './ogcCapabilities';
-import type { CustomLayer } from '../config/siteConfig';
+import type { CustomBasemap, CustomLayer } from '../config/siteConfig';
 import { DabDataProvider, discoverEntities } from '../data/api/DabDataProvider';
 import { loadData } from '../store/bootstrap';
 import { Icon } from '../ui/components/Icon';
@@ -44,7 +44,7 @@ const SECTIONS: { id: Section; label: string; icon: string; help: string }[] = [
   { id: 'fonds', label: 'Fonds de carte', icon: 'image', help: 'Fonds proposés aux utilisateurs et fond par défaut.' },
   { id: 'couches', label: 'Couches', icon: 'layers', help: 'Sources (fichiers, API), style par défaut et réglages laissés aux utilisateurs.' },
   { id: 'exports', label: 'Exports types', icon: 'image', help: 'Modèles de cartes et d’images proposés aux utilisateurs : zone, couches, symbologie, format, cadrage.' },
-  { id: 'tableaux', label: 'Tableaux de bord', icon: 'chart', help: 'Page web (rapport Power BI…) ouverte depuis la fiche d’un objet, filtrée sur cet objet.' },
+  { id: 'tableaux', label: 'Tableaux de bord', icon: 'chart', help: 'Bibliothèque de liens (Power BI, pages web) : menu général et fiches des objets, filtrés sur l’objet.' },
   { id: 'interface', label: 'Interface', icon: 'sliders', help: 'Onglets, filtres, critères de couleur, exports et recherche.' },
   { id: 'services', label: 'Services & API', icon: 'external', help: 'Adresses des API et des fichiers de référence.' },
   { id: 'publication', label: 'Publication', icon: 'upload', help: 'Prévisualiser, télécharger et publier la configuration.' },
@@ -331,6 +331,8 @@ function DonneesSection({ cfg, update }: Props) {
 function FondsSection({ cfg, update }: Props) {
   return (
     <>
+      <CustomBasemapsBlock cfg={cfg} update={update} />
+      <h2 className="admin-group-title">Fonds fournis</h2>
       {cfg.basemaps.map((b, i) => {
         const meta = CATALOG.basemaps.find((x) => x.id === b.id)?.meta as SourceMeta | undefined;
         return (
@@ -987,16 +989,30 @@ function sampleRef(kind: string): EntityRef | undefined {
 function TableauxSection({ cfg, update }: Props) {
   const [preview, setPreview] = useState<string>();
   useAppStore((s) => s.index); // ré-affichage quand les données sont chargées (exemples)
+  const add = () =>
+    update((c) =>
+      void c.embedLibrary.push({
+        id: `lien-${Date.now().toString(36)}`,
+        enabled: true,
+        name: 'Nouveau tableau de bord',
+        description: '',
+        url: '',
+        mode: 'panneau',
+        kinds: [],
+        inMenu: true,
+      }),
+    );
   return (
     <>
       <Card title="Principe">
         <p className="admin-hint">
-          Pour chaque type d’objet, indiquez l’adresse de la page à ouvrir. Les variables entre accolades sont remplacées par les
-          valeurs de l’objet cliqué : on peut ainsi ouvrir un rapport Power BI déjà filtré. Exemple (filtre d’URL Power BI) :
+          Conservez ici vos liens (rapports Power BI, pages web…). Chaque lien peut être proposé dans le menu « Tableaux de bord »
+          de l’en-tête et/ou sur la fiche de certains objets : les variables entre accolades sont alors remplacées par les valeurs
+          de l’objet cliqué, pour ouvrir le rapport déjà filtré.
         </p>
         <p className="admin-hint">
-          Power BI : utilisez le lien « Fichier → Incorporer le rapport → Site web ou portail » (reportEmbed…). Le lien normal
-          d’un rapport refuse l’intégration (« n’autorise pas la connexion ») : choisissez alors « Nouvel onglet ».
+          Power BI : lien « Fichier → Incorporer le rapport → Site web ou portail » (reportEmbed…) pour l’ouverture en panneau ;
+          le lien normal d’un rapport refuse l’intégration : choisissez alors « Nouvel onglet ».
         </p>
         <code className="admin-code">{'https://app.powerbi.com/reportEmbed?reportId=…&autoAuth=true&ctid=…&filter=Patrimoine/Code_niveau_patrimoine_1 eq \'{code}\''}</code>
         <details className="admin-meta">
@@ -1006,54 +1022,235 @@ function TableauxSection({ cfg, update }: Props) {
           </dl>
         </details>
       </Card>
-      {cfg.embeds.map((e, i) => {
-        const ref = sampleRef(e.kind);
+
+      {cfg.embedLibrary.map((e, i) => {
+        const set = (fn: (l: typeof e) => void) => update((c) => fn(c.embedLibrary[i]));
         const ix = useAppStore.getState().index;
-        const example = ref && ix && e.url ? buildEmbedUrl(e.url, entityValues(ix, ref)) : '';
+        const ref = e.kinds[0] ? sampleRef(e.kinds[0]) : undefined;
+        const example = e.url ? (ref && ix ? buildEmbedUrl(e.url, entityValues(ix, ref)) : e.url) : '';
         return (
           <Card
-            key={e.kind}
+            key={e.id}
             muted={!e.enabled}
             title={
               <span className="admin-title-row">
-                <Switch checked={e.enabled} onChange={(v) => update((c) => void (c.embeds[i].enabled = v))} />
-                {EMBED_KIND_LABELS[e.kind]}
+                <Switch checked={e.enabled} onChange={(v) => set((x) => void (x.enabled = v))} />
+                {e.name}
+              </span>
+            }
+            right={
+              <span className="admin-checks">
+                <button type="button" className="btn btn-sm" onClick={() => update((c) => void c.embedLibrary.splice(i + 1, 0, { ...structuredClone(e), id: `lien-${Date.now().toString(36)}`, name: `${e.name} (copie)` }))}>Dupliquer</button>
+                <button type="button" className="btn btn-sm" onClick={() => update((c) => void c.embedLibrary.splice(i, 1))}>Supprimer</button>
               </span>
             }
           >
-            {e.enabled && (
-              <div className="admin-grid">
-                <Field label="Texte du bouton">
-                  <input className="input" value={e.label} onChange={(ev) => update((c) => void (c.embeds[i].label = ev.target.value))} />
-                </Field>
-                <Field label="Ouverture" hint="Nouvel onglet : pour les pages qui refusent d’être intégrées (lien Power BI classique…).">
-                  <select className="select" value={e.mode ?? 'panneau'} onChange={(ev) => update((c) => void (c.embeds[i].mode = ev.target.value as 'panneau' | 'onglet'))}>
-                    <option value="panneau">Panneau dans la carte</option>
-                    <option value="onglet">Nouvel onglet</option>
-                  </select>
-                </Field>
-                <Field label="Adresse de la page (avec variables)" wide>
-                  <input className="input mono" value={e.url} placeholder="https://app.powerbi.com/reportEmbed?…&filter=Table/Champ eq '{code}'" onChange={(ev) => update((c) => void (c.embeds[i].url = ev.target.value))} />
-                </Field>
-                {example && (
-                  <Field label="Exemple avec un objet des données chargées" wide>
-                    <div className="admin-inline">
-                      <input className="input mono" readOnly value={example} />
-                      <button type="button" className="btn btn-sm" onClick={() => setPreview(example)}>Aperçu</button>
-                    </div>
-                  </Field>
-                )}
-              </div>
+            <div className="admin-grid">
+              <Field label="Nom (bouton / menu)">
+                <input className="input" value={e.name} onChange={(ev) => set((x) => void (x.name = ev.target.value))} />
+              </Field>
+              <Field label="Ouverture">
+                <select className="select" value={e.mode} onChange={(ev) => set((x) => void (x.mode = ev.target.value as 'panneau' | 'onglet'))}>
+                  <option value="panneau">Panneau dans la carte</option>
+                  <option value="onglet">Nouvel onglet</option>
+                </select>
+              </Field>
+              <Field label="Description" wide>
+                <input className="input" value={e.description} placeholder="Affichée au survol" onChange={(ev) => set((x) => void (x.description = ev.target.value))} />
+              </Field>
+              <Field label="Adresse (avec variables si rattaché à des fiches)" wide>
+                <input className="input mono" value={e.url} placeholder="https://app.powerbi.com/reportEmbed?…&filter=Table/Champ eq '{code}'" onChange={(ev) => set((x) => void (x.url = ev.target.value))} />
+              </Field>
+            </div>
+            <div className="admin-sub">Où proposer ce lien</div>
+            <div className="admin-checks">
+              <label className="chip-toggle">
+                <input type="checkbox" checked={e.inMenu} onChange={(ev) => set((x) => void (x.inMenu = ev.target.checked))} />
+                Menu « Tableaux de bord » (en-tête)
+              </label>
+              {(Object.keys(EMBED_KIND_LABELS) as (keyof typeof EMBED_KIND_LABELS)[]).map((k) => (
+                <label key={k} className="chip-toggle">
+                  <input type="checkbox" checked={e.kinds.includes(k)} onChange={(ev) => set((x) => void (x.kinds = ev.target.checked ? [...x.kinds, k] : x.kinds.filter((y) => y !== k)))} />
+                  Fiche {EMBED_KIND_LABELS[k].toLowerCase()}
+                </label>
+              ))}
+            </div>
+            {example && (
+              <Field label={ref ? 'Exemple avec un objet des données chargées' : 'Adresse'} wide>
+                <div className="admin-inline">
+                  <input className="input mono" readOnly value={example} />
+                  <button type="button" className="btn btn-sm" onClick={() => setPreview(example)}>Aperçu</button>
+                </div>
+              </Field>
             )}
           </Card>
         );
       })}
+      <div>
+        <button type="button" className="btn btn-primary" onClick={add}>+ Ajouter un lien</button>
+      </div>
+
       {preview && (
         <Card title="Aperçu" right={<button type="button" className="btn btn-sm" onClick={() => setPreview(undefined)}>Fermer</button>}>
           <iframe className="admin-preview" src={preview} title="Aperçu du tableau de bord" />
-          <p className="admin-hint">Page vide ou refusée ? Le site cible interdit peut-être l’intégration (en-tête X-Frame-Options / CSP), ou demande une connexion.</p>
+          <p className="admin-hint">Page vide ou refusée ? Le site cible interdit peut-être l’intégration : choisissez « Nouvel onglet ».</p>
         </Card>
       )}
     </>
+  );
+}
+
+/* ------------------------------ Fonds de carte créés ------------------------------ */
+
+/** Lecture d'un GetCapabilities WMTS/WMS et choix d'une couche (partagé). */
+function CapsPicker({ type, capabilitiesUrl, currentUrl, onCapsUrl, onType, onPick }: {
+  type: 'wmts' | 'wms';
+  capabilitiesUrl: string;
+  currentUrl: string;
+  onCapsUrl: (u: string) => void;
+  onType: (t: 'wmts' | 'wms') => void;
+  onPick: (l: OgcLayer) => void;
+}) {
+  const [caps, setCaps] = useState<{ status: 'idle' | 'loading' | 'ok' | 'ko'; layers?: OgcLayer[]; msg?: string }>({ status: 'idle' });
+  const [q, setQ] = useState('');
+  const read = async () => {
+    const { url, changed } = modernizeIgnUrl(capabilitiesUrl);
+    if (changed) onCapsUrl(url);
+    setCaps({ status: 'loading' });
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return setCaps({ status: 'ko', msg: `Le service répond « HTTP ${res.status} ».` });
+      const xml = await res.text();
+      const detected: 'wmts' | 'wms' = /WMS_Capabilities|WMT_MS_Capabilities/.test(xml.slice(0, 3000)) ? 'wms' : /wmts/i.test(xml.slice(0, 2000)) ? 'wmts' : type;
+      if (detected !== type) onType(detected);
+      const layers = detected === 'wmts' ? parseWmts(xml, url) : parseWms(xml, url);
+      setCaps({ status: layers.length ? 'ok' : 'ko', layers, msg: layers.length ? `${changed ? 'Adresse wxs.ign.fr convertie. ' : ''}${layers.length} couche(s) trouvée(s).` : describeResponse(xml) });
+    } catch {
+      setCaps({ status: 'ko', msg: 'GetCapabilities inaccessible depuis le navigateur (URL, réseau ou CORS).' });
+    }
+  };
+  const list = (caps.layers ?? []).filter((l) => !q || `${l.title} ${l.id}`.toLowerCase().includes(q.toLowerCase())).slice(0, 60);
+  return (
+    <>
+      <Field label="Adresse GetCapabilities" hint="Ex. https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities" wide>
+        <div className="admin-inline">
+          <input className="input mono" value={capabilitiesUrl} onChange={(e) => onCapsUrl(e.target.value)} />
+          <button type="button" className="btn btn-sm" disabled={!capabilitiesUrl || caps.status === 'loading'} onClick={read}>
+            {caps.status === 'loading' ? 'Lecture…' : 'Lister les couches'}
+          </button>
+        </div>
+      </Field>
+      {caps.msg && <p className={`admin-hint is-wide ${caps.status === 'ko' ? 'admin-ko' : ''}`}>{caps.msg}</p>}
+      {caps.layers && caps.layers.length > 0 && (
+        <div className="is-wide">
+          <input className="input" placeholder="Filtrer les couches…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <ul className="tpl-zones admin-caps">
+            {list.map((l) => (
+              <li key={l.id}>
+                <button type="button" disabled={!l.url} className={currentUrl === l.url ? 'is-selected' : ''} onClick={() => onPick(l)} title={l.warning ?? l.id}>
+                  <span className="grow">{l.title}</span>
+                  <span className="muted small mono">{l.warning ? '⚠ non Web Mercator' : l.id}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
+
+function CustomBasemapsBlock({ cfg, update }: Props) {
+  const add = () =>
+    update((c) =>
+      void c.customBasemaps.push({
+        id: `fond-${Date.now().toString(36)}`,
+        enabled: true,
+        label: 'Nouveau fond',
+        type: 'wmts',
+        url: '',
+        capabilitiesUrl: 'https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetCapabilities',
+        attribution: '',
+        maxzoom: 19,
+        grayscale: false,
+      }),
+    );
+  return (
+    <div className="admin-group">
+      <h2 className="admin-group-title">Fonds créés</h2>
+      {cfg.customBasemaps.map((b, i) => (
+        <CustomBasemapCard
+          key={b.id}
+          b={b}
+          isDefault={cfg.defaultBasemap === b.id}
+          setDefault={() => update((c) => void (c.defaultBasemap = b.id))}
+          set={(fn) => update((c) => fn(c.customBasemaps[i]))}
+          onDelete={() => update((c) => void c.customBasemaps.splice(i, 1))}
+        />
+      ))}
+      <div>
+        <button type="button" className="btn btn-primary" onClick={add}>+ Créer un fond de carte</button>
+      </div>
+    </div>
+  );
+}
+
+function CustomBasemapCard({ b, isDefault, setDefault, set, onDelete }: { b: CustomBasemap; isDefault: boolean; setDefault: () => void; set: (fn: (x: CustomBasemap) => void) => void; onDelete: () => void }) {
+  return (
+    <Card
+      muted={!b.enabled}
+      title={
+        <span className="admin-title-row">
+          <Switch checked={b.enabled} onChange={(v) => set((x) => void (x.enabled = v))} />
+          {b.label}
+          <span className="badge badge-muted">{b.type.toUpperCase()}</span>
+        </span>
+      }
+      right={
+        <span className="admin-checks">
+          <label className="admin-radio">
+            <input type="radio" name="defaultBasemap" checked={isDefault} disabled={!b.enabled || !b.url} onChange={setDefault} />
+            Fond par défaut
+          </label>
+          <button type="button" className="btn btn-sm" onClick={onDelete}>Supprimer</button>
+        </span>
+      }
+    >
+      <div className="admin-grid">
+        <Field label="Type de source">
+          <select className="select" value={b.type} onChange={(e) => set((x) => { x.type = e.target.value as CustomBasemap['type']; x.url = ''; })}>
+            <option value="wmts">WMTS</option>
+            <option value="wms">WMS</option>
+            <option value="xyz">Tuiles XYZ</option>
+          </select>
+        </Field>
+        <Field label="Nom affiché">
+          <input className="input" value={b.label} onChange={(e) => set((x) => void (x.label = e.target.value))} />
+        </Field>
+        <Field label="Attribution" hint="Mention obligatoire du fournisseur, ex. © IGN">
+          <input className="input" value={b.attribution} onChange={(e) => set((x) => void (x.attribution = e.target.value))} />
+        </Field>
+        {b.type !== 'xyz' && (
+          <CapsPicker
+            type={b.type}
+            capabilitiesUrl={b.capabilitiesUrl ?? ''}
+            currentUrl={b.url}
+            onCapsUrl={(u) => set((x) => void (x.capabilitiesUrl = u))}
+            onType={(t) => set((x) => void (x.type = t))}
+            onPick={(l) => set((x) => { x.url = l.url; if (x.label === 'Nouveau fond') x.label = l.title; })}
+          />
+        )}
+        <Field label="Modèle d’URL des tuiles" hint={b.type === 'xyz' ? 'Ex. https://…/{z}/{x}/{y}.png' : 'Rempli automatiquement en choisissant une couche ci-dessus.'} wide>
+          <div className="admin-inline">
+            <input className="input mono" value={b.url} onChange={(e) => set((x) => void (x.url = e.target.value))} />
+            <TestUrl url={b.url} />
+          </div>
+        </Field>
+        <Field label={`Zoom maximal des tuiles : ${b.maxzoom}`} hint="Au-delà, les tuiles sont agrandies.">
+          <input type="range" min={10} max={22} step={1} value={b.maxzoom} onChange={(e) => set((x) => void (x.maxzoom = Number(e.target.value)))} />
+        </Field>
+        <Switch checked={b.grayscale} onChange={(v) => set((x) => void (x.grayscale = v))} label="Afficher en noir et blanc" />
+      </div>
+    </Card>
   );
 }

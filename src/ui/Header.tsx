@@ -8,6 +8,7 @@ import { useFilteredView } from '../store/useFilteredView';
 import { Icon } from './components/Icon';
 import { SearchBox } from './SearchBox';
 import { ExportTemplatesDialog } from './ExportTemplatesDialog';
+import { buildEmbedUrl, menuEmbeds } from './embed';
 
 export function Header() {
   const notify = useAppStore((s) => s.notify);
@@ -15,6 +16,9 @@ export function Header() {
   const [menu, setMenu] = useState(false);
   const [busy, setBusy] = useState(false);
   const [templates, setTemplates] = useState(false);
+  const [dash, setDash] = useState(false);
+  const links = menuEmbeds();
+  const openEmbed = useAppStore((s) => s.set);
 
   const run = async (fn: () => Promise<void>, ok: string) => {
     setMenu(false);
@@ -48,6 +52,32 @@ export function Header() {
           </button>
         )}
         {templates && <ExportTemplatesDialog onClose={() => setTemplates(false)} />}
+        {links.length > 0 && (
+          <div className="menu-wrap">
+            <button type="button" className="btn btn-ghost" aria-haspopup="menu" aria-expanded={dash} onClick={() => setDash(!dash)}>
+              <Icon name="chart" />
+              <span className="hide-sm">Tableaux de bord</span>
+            </button>
+            {dash && (
+              <div className="menu" role="menu" onMouseLeave={() => setDash(false)}>
+                {links.map((l) => {
+                  const url = buildEmbedUrl(l.url, {});
+                  return l.mode === 'onglet' ? (
+                    <a key={l.id} role="menuitem" className="menu-link" href={url} target="_blank" rel="noopener noreferrer" onClick={() => setDash(false)}>
+                      <Icon name="external" />
+                      <span>{l.name}{l.description && <small>{l.description}</small>}</span>
+                    </a>
+                  ) : (
+                    <button key={l.id} type="button" role="menuitem" onClick={() => { setDash(false); openEmbed({ embed: { title: l.name, url } }); }}>
+                      <Icon name="chart" />
+                      <span>{l.name}{l.description && <small>{l.description}</small>}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
         {(siteConfig.ui.exportExcel || siteConfig.ui.exportImage) && <div className="menu-wrap">
           <button type="button" className="btn btn-primary" aria-haspopup="menu" aria-expanded={menu} disabled={!view || busy} onClick={() => setMenu(!menu)}>
             <Icon name="download" />

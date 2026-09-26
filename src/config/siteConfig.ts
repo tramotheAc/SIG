@@ -114,6 +114,36 @@ export interface EmbedConfig {
   /** Adresse avec variables : {id} {code} {nom} {insee} {commune} {epci} {epciNom} {agence} {agenceNom} {departement}. */
   url: string;
 }
+/** Lien de la bibliothèque (Power BI ou autre page web). */
+export interface EmbedLink {
+  id: string;
+  enabled: boolean;
+  /** Nom affiché (bouton / menu). */
+  name: string;
+  description: string;
+  /** Adresse, avec variables si le lien est rattaché à des fiches. */
+  url: string;
+  mode: 'panneau' | 'onglet';
+  /** Fiches sur lesquelles le lien est proposé (variables remplacées par l'objet cliqué). */
+  kinds: EmbedKind[];
+  /** Proposé dans le menu général « Tableaux de bord » de l'en-tête. */
+  inMenu: boolean;
+}
+
+/** Fond de carte créé par l'administrateur. */
+export interface CustomBasemap {
+  id: string;
+  enabled: boolean;
+  label: string;
+  type: 'wmts' | 'wms' | 'xyz';
+  url: string;
+  capabilitiesUrl?: string;
+  attribution: string;
+  maxzoom: number;
+  /** Rendu noir et blanc (désaturation). */
+  grayscale: boolean;
+}
+
 export const EMBED_KIND_LABELS: Record<EmbedKind, string> = {
   residence: 'Résidence',
   batiment: 'Bâtiment / adresse',
@@ -149,7 +179,8 @@ export interface SiteConfig {
   version: 1;
   exportTemplates: ExportTemplate[];
   customLayers: CustomLayer[];
-  embeds: EmbedConfig[];
+  embedLibrary: EmbedLink[];
+  customBasemaps: CustomBasemap[];
   data: {
     /** Source des données patrimoine : fichier Excel ou API (Data API Builder). */
     source: 'excel' | 'api';
@@ -270,7 +301,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = clone({
   version: 1,
   exportTemplates: DEFAULT_EXPORT_TEMPLATES,
   customLayers: [],
-  embeds: (['residence', 'batiment', 'logement', 'commune', 'epci', 'agence', 'qpv'] as EmbedKind[]).map((kind) => ({ kind, enabled: false, label: 'Tableau de bord', url: '' })),
+  embedLibrary: [],
+  customBasemaps: [],
   data: {
     source: 'excel',
     excelUrl: appConfig.demoDataUrl,
@@ -321,7 +353,13 @@ export function mergeConfig(partial: Partial<SiteConfig> | undefined): SiteConfi
   return {
     version: 1,
     customLayers: Array.isArray(partial.customLayers) ? partial.customLayers : [],
-    embeds: d.embeds.map((e) => ({ ...e, ...((partial.embeds ?? []).find((x) => x?.kind === e.kind) ?? {}) })),
+    customBasemaps: Array.isArray(partial.customBasemaps) ? partial.customBasemaps : [],
+    embedLibrary: Array.isArray(partial.embedLibrary)
+      ? partial.embedLibrary
+      : // Ancien format (un lien par type d'objet) converti en bibliothèque
+        ((partial as { embeds?: EmbedConfig[] }).embeds ?? [])
+          .filter((e) => e?.url)
+          .map((e) => ({ id: `lien-${e.kind}`, enabled: e.enabled, name: e.label, description: '', url: e.url, mode: e.mode ?? 'panneau', kinds: [e.kind], inMenu: false })),
     exportTemplates: Array.isArray(partial.exportTemplates) ? partial.exportTemplates.map((t) => tpl({ ...t })) : d.exportTemplates,
     data: {
       ...d.data,
@@ -414,6 +452,26 @@ export function applySiteConfig(cfg: SiteConfig) {
     const def = bm.find((b) => b.id === s.id);
     if (!def || !s.enabled) continue;
     basemaps.push({ ...def, label: s.label || def.label, tiles: s.tiles?.length || !def.tiles.length ? s.tiles : def.tiles });
+  }
+  for (const c of cfg.customBasemaps) {
+    if (!c.enabled || !c.url) continue;
+    basemaps.push({
+      id: c.id,
+      label: c.label,
+      tiles: [c.url],
+      attribution: c.attribution,
+      maxzoom: c.maxzoom || 19,
+      paint: c.grayscale ? { 'raster-saturation': -1 } : undefined,
+      meta: {
+        source: c.attribution || 'Fond ajouté par l’administrateur',
+        type: c.type.toUpperCase(),
+        endpoint: c.capabilitiesUrl || c.url,
+        millesime: '—',
+        format: 'Tuiles image',
+        crs: 'EPSG:3857',
+        frequence: '—',
+      },
+    });
   }
   if (!basemaps.length) basemaps.push(bm[0]);
   const i = basemaps.findIndex((b) => b.id === cfg.defaultBasemap);

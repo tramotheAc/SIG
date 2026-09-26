@@ -1,11 +1,16 @@
 /** Construction de l'adresse d'une page intégrée (ex. Power BI filtré) pour l'objet sélectionné. */
-import { siteConfig, type EmbedConfig, type EmbedKind } from '../config/siteConfig';
+import { siteConfig, type EmbedKind, type EmbedLink } from '../config/siteConfig';
 import type { EntityRef } from '../domain/model';
 import type { PatrimoineIndex } from '../domain/patrimoineIndex';
 
-export function embedFor(kind: string): EmbedConfig | undefined {
-  const e = siteConfig.embeds.find((x) => x.kind === (kind as EmbedKind));
-  return e?.enabled && e.url.trim() ? e : undefined;
+/** Liens de la bibliothèque proposés sur la fiche d'un type d'objet. */
+export function embedsFor(kind: string): EmbedLink[] {
+  return siteConfig.embedLibrary.filter((e) => e.enabled && e.url.trim() && e.kinds.includes(kind as EmbedKind));
+}
+
+/** Liens du menu général (en-tête). */
+export function menuEmbeds(): EmbedLink[] {
+  return siteConfig.embedLibrary.filter((e) => e.enabled && e.url.trim() && e.inMenu);
 }
 
 /** Valeurs disponibles pour les variables de l'adresse. */

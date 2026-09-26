@@ -8,7 +8,7 @@ import { colorRegistry } from '../store/colorRegistry';
 import { locate, selectAndZoom } from '../store/navigation';
 import { useAppStore } from '../store/useAppStore';
 import { Icon } from './components/Icon';
-import { buildEmbedUrl, embedFor, entityValues } from './embed';
+import { buildEmbedUrl, embedsFor, entityValues } from './embed';
 import { fmt } from './components/controls';
 import { ROLE_LABELS } from './panels/filterOptions';
 
@@ -537,24 +537,26 @@ function AdresseFiche({ sel, index }: { sel: EntityRef; index: PatrimoineIndex }
   );
 }
 
-/** Bouton « Tableau de bord » : page configurée en administration, filtrée sur l'objet. */
+/** Boutons des liens de la bibliothèque rattachés à ce type d'objet (filtrés sur l'objet). */
 function EmbedButton({ sel, index }: { sel: EntityRef; index: PatrimoineIndex }) {
   const set = useAppStore((s) => s.set);
-  const cfg = embedFor(sel.kind);
-  if (!cfg) return null;
+  const links = embedsFor(sel.kind);
+  if (!links.length) return null;
   const values = entityValues(index, sel);
-  const url = buildEmbedUrl(cfg.url, values);
   return (
     <div className="embed-bar">
-      {cfg.mode === 'onglet' ? (
-        <a className="btn btn-primary btn-sm" href={url} target="_blank" rel="noopener noreferrer">
-          <Icon name="external" size={15} /> {cfg.label}
-        </a>
-      ) : (
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => set({ embed: { title: `${cfg.label} — ${values.nom ?? values.code ?? sel.id}`, url } })}>
-          <Icon name="chart" size={15} /> {cfg.label}
-        </button>
-      )}
+      {links.map((l) => {
+        const url = buildEmbedUrl(l.url, values);
+        return l.mode === 'onglet' ? (
+          <a key={l.id} className="btn btn-primary btn-sm" href={url} target="_blank" rel="noopener noreferrer" title={l.description}>
+            <Icon name="external" size={15} /> {l.name}
+          </a>
+        ) : (
+          <button key={l.id} type="button" className="btn btn-primary btn-sm" title={l.description} onClick={() => set({ embed: { title: `${l.name} — ${values.nom ?? values.code ?? sel.id}`, url } })}>
+            <Icon name="chart" size={15} /> {l.name}
+          </button>
+        );
+      })}
     </div>
   );
 }

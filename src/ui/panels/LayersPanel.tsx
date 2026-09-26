@@ -21,7 +21,7 @@ export function LayersPanel() {
         <div className="basemaps">
           {basemaps.map((b) => (
             <button key={b.id} type="button" className={`basemap-card ${basemap === b.id ? 'is-active' : ''}`} onClick={() => set({ basemap: b.id })} aria-pressed={basemap === b.id} title={b.meta.source}>
-              <span className={`basemap-thumb thumb-${b.id}`} aria-hidden="true" />
+              <span className={`basemap-thumb thumb-${b.id.startsWith("fond-") ? "custom" : b.id}`} aria-hidden="true" />
               <span>{b.label}</span>
             </button>
           ))}
