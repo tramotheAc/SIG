@@ -42,7 +42,10 @@ function featureToRef(f: MapGeoJSONFeature): EntityRef | undefined {
   }
   if (layer === 'ref-qpv-fill') return { kind: 'qpv', id: String(p.code), payload: { ...p } };
   if (layer === 'ref-epci-fill') return { kind: 'epci', id: String(p.code) };
-  if (layer.startsWith('ref-')) return { kind: 'commune', id: String(p.code) };
+  if (['ref-communes-fill', 'ref-apl-fill', 'ref-pinel-fill'].includes(layer)) return { kind: 'commune', id: String(p.code) };
+  // Toute autre couche de surfaces cliquable (quartiers, couches créées…) : fiche « zone »
+  const m = layer.match(/^ref-(.+)-(fill|line|circle)$/);
+  if (m) return { kind: 'zone', id: `${m[1]}::${p.code}`, payload: { layerId: m[1], code: p.code, ...p } };
   return undefined;
 }
 
@@ -106,7 +109,12 @@ export function MapView() {
       ];
       const available = [...INTERACTIVE_PAT_LAYERS, ...INTERACTIVE_REF_LAYERS].filter((l) => m.getLayer(l));
       const feats = m.queryRenderedFeatures(bbox, { layers: available });
-      feats.sort((a, b) => CLICK_PRIORITY.indexOf(a.layer.id) - CLICK_PRIORITY.indexOf(b.layer.id));
+      // Priorité : patrimoine, adresses, QPV, autres zones (quartiers, couches créées), puis zonages / communes / EPCI.
+      const rank = (id: string) => {
+        const i = CLICK_PRIORITY.indexOf(id);
+        return i >= 0 ? (i <= CLICK_PRIORITY.indexOf('ref-qpv-fill') ? i : i + 100) : 50;
+      };
+      feats.sort((a, b) => rank(a.layer.id) - rank(b.layer.id));
       const ref = feats.length ? featureToRef(feats[0]) : undefined;
       useAppStore.getState().select(ref);
     });
@@ -115,7 +123,7 @@ export function MapView() {
     const popup = new Popup({ closeButton: false, closeOnClick: false, offset: 10, className: 'map-tooltip' });
     let hovered: { source: string; id: string | number } | undefined;
     m.on('mousemove', (e) => {
-      const available = [...INTERACTIVE_PAT_LAYERS, 'ref-ban-circle', 'ref-qpv-fill'].filter((l) => m.getLayer(l));
+      const available = [...INTERACTIVE_PAT_LAYERS, ...INTERACTIVE_REF_LAYERS.filter((l) => !/communes|epci|apl|pinel/.test(l))].filter((l) => m.getLayer(l));
       const f = m.queryRenderedFeatures(e.point, { layers: available })[0];
       if (hovered) m.setFeatureState(hovered, { hover: false });
       hovered = undefined;

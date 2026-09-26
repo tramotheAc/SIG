@@ -195,7 +195,9 @@ export type EntityKind =
   | 'commune'
   | 'epci'
   | 'qpv'
-  | 'adresse';
+  | 'adresse'
+  /** Zone d'une couche de surfaces (quartier, couche créée…). */
+  | 'zone';
 
 export interface EntityRef {
   kind: EntityKind;

@@ -348,7 +348,7 @@ export const referenceLayers: ReferenceLayerDef[] = [
     geometry: 'fill',
     kind: { type: 'geojson-url', url: `${base}referentiels/quartiers.geojson` },
     defaults: { color: '#0b7285', opacity: 0.2, width: 1.2, labels: true },
-    interactive: false,
+    interactive: true,
     labelProp: 'nom',
     controls: ['opacity', 'color', 'width', 'labels'],
     meta: {

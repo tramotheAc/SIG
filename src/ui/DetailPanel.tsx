@@ -4,7 +4,9 @@ import { appConfig } from '../config/app.config';
 import type { Batiment, EntityRef, Responsables, GeoContext, GeoPoint, Logement, Residence } from '../domain/model';
 import { PatrimoineIndex } from '../domain/patrimoineIndex';
 import { QPV_LABELS } from '../domain/symbology';
-import { haversine } from '../geo/spatial';
+import { haversine, pointInPolygon, preparePolygons } from '../geo/spatial';
+import { referenceLayers } from '../config/layers.config';
+import { layerData } from '../map/referenceLayers';
 import { colorRegistry } from '../store/colorRegistry';
 import { locate, selectAndZoom } from '../store/navigation';
 import { useAppStore } from '../store/useAppStore';
@@ -23,6 +25,7 @@ const KIND_LABEL: Record<string, string> = {
   agence: 'Agence',
   qpv: 'Quartier prioritaire (QPV)',
   adresse: 'Adresse (BAN)',
+  zone: 'Zone',
 };
 
 /** Fiche objet contextualisée (panneau de droite). */
@@ -86,6 +89,8 @@ function Fiche({ sel, index }: { sel: EntityRef; index: PatrimoineIndex }) {
       return <QpvFiche sel={sel} index={index} />;
     case 'adresse':
       return <AdresseFiche sel={sel} index={index} />;
+    case 'zone':
+      return <ZoneFiche sel={sel} index={index} />;
     default:
       return <Missing />;
   }
@@ -576,5 +581,57 @@ function EmbedButton({ sel, index }: { sel: EntityRef; index: PatrimoineIndex })
         );
       })}
     </div>
+  );
+}
+
+/** Fiche générique d'une zone (quartier, couche créée…) : attributs + patrimoine contenu. */
+function ZoneFiche({ sel, index }: { sel: EntityRef; index: PatrimoineIndex }) {
+  const layerId = String(sel.payload?.layerId ?? '');
+  const code = String(sel.payload?.code ?? '');
+  const def = referenceLayers.find((l) => l.id === layerId);
+  const flyTo = useAppStore((s) => s.flyTo);
+  const { feature, inside } = useMemo(() => {
+    const fc = layerData.get(layerId);
+    const f = fc?.features.find((x) => String(x.properties?.code) === code);
+    if (!f) return { feature: undefined, inside: [] as Residence[] };
+    const [poly] = preparePolygons({ type: 'FeatureCollection', features: [f] }, [], []);
+    const inside = poly ? [...index.residences.values()].filter((r) => r.position && pointInPolygon(r.position, poly)) : [];
+    return { feature: f, inside };
+  }, [layerId, code, index]);
+  const props = (feature?.properties ?? sel.payload ?? {}) as Record<string, unknown>;
+  const labelProp = def?.labelProp ?? 'nom';
+  const title = String(props[labelProp] ?? props.nom ?? props.name ?? code);
+  const attrs = Object.entries(props)
+    .filter(([k, v]) => !['layerId', 'code', labelProp].includes(k) && v !== null && v !== '' && typeof v !== 'object')
+    .slice(0, 14);
+  const logements = inside.reduce((s, r) => s + r.nbLogements, 0);
+  const bounds = (() => {
+    if (!feature) return undefined;
+    let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+    const walk = (c: unknown): void => {
+      if (Array.isArray(c) && typeof c[0] === 'number') {
+        const [x, y] = c as number[];
+        w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y);
+      } else if (Array.isArray(c)) c.forEach(walk);
+    };
+    walk((feature.geometry as { coordinates?: unknown }).coordinates);
+    return Number.isFinite(w) ? ([[w, s], [e, n]] as [[number, number], [number, number]]) : undefined;
+  })();
+  return (
+    <>
+      <Head kind="zone" title={title} subtitle={def?.label} />
+      <div className="kpis">
+        <Stat value={inside.length} label="résidences" />
+        <Stat value={logements} label="logements" />
+      </div>
+      <Actions>
+        <button type="button" className="btn btn-ghost btn-sm" disabled={!bounds} onClick={() => bounds && flyTo({ bounds, zoom: 16 })}>
+          <Icon name="zoom" size={15} /> Zoomer sur la zone
+        </button>
+      </Actions>
+      <Fields title="Attributs" rows={attrs.map(([k, v]) => [k.replace(/_/g, ' '), String(v)])} />
+      {inside.length > 0 && breakdown(index, inside)}
+      {inside.length > 0 ? <ResidenceList residences={inside} title="Résidences dans la zone" /> : <p className="empty">Aucune résidence du patrimoine dans cette zone.</p>}
+    </>
   );
 }

@@ -188,6 +188,7 @@ export class ReferenceLayerManager {
     loader()
       .then((fc) => {
         (map.getSource(srcId(def.id)) as GeoJSONSource).setData(fc);
+        layerData.set(def.id, fc);
         const bb = bboxOf(fc);
         if (bb) layerBounds.set(def.id, bb);
         if (def.geometry !== 'circle') (map.getSource(labelSrc(def.id)) as GeoJSONSource).setData(labelPoints(fc, def.labelProp ?? 'nom'));
@@ -448,6 +449,9 @@ export async function diagnoseTile(template: string, map: MlMap): Promise<string
   }
   return 'Les images sont bien reçues mais ne peuvent pas être affichées (format ou CORS). Voir la console du navigateur (F12).';
 }
+
+/** Données GeoJSON chargées par couche (fiche « zone » : attributs, patrimoine inclus). */
+export const layerData = new Map<string, FeatureCollection>();
 
 /** Emprise des couches GeoJSON chargées (bouton « Zoomer sur la couche »). */
 export const layerBounds = new Map<string, [[number, number], [number, number]]>();
