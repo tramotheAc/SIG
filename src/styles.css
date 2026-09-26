@@ -408,3 +408,15 @@ h1, h2, h3 { margin: 0; }
 .multiselect { position: relative; }
 .section-body > * { position: relative; }
 .section-body > .multiselect:focus-within { z-index: 40; }
+
+/* Exports types : sélection multiple */
+.tpl-zone-tools { display: flex; gap: 8px; }
+.tpl-zone-tools .select { max-width: 45%; }
+.tpl-zone-tools .input { flex: 1; min-width: 0; }
+.tpl-zone-bar { display: flex; align-items: center; gap: 8px; margin: 6px 0 4px; }
+.tpl-zone-bar .check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.tpl-zones button input[type=checkbox] { margin: 0 8px 0 0; pointer-events: none; }
+.tpl-progress { display: grid; gap: 4px; margin: 8px 0; }
+.tpl-progress-bar { height: 6px; border-radius: 3px; background: var(--border, #e3e7ec); overflow: hidden; }
+.tpl-progress-bar span { display: block; height: 100%; background: var(--primary, #3560a4); transition: width .25s ease; }
+.tpl-actions { display: flex; justify-content: flex-end; gap: 8px; }

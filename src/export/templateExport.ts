@@ -23,18 +23,23 @@ export interface ZoneOption {
   value: string;
   label: string;
   hint?: string;
+  /** Rattachements (pour sélectionner d'un coup toutes les zones d'un EPCI / département). */
+  epci?: string;
+  departement?: string;
 }
 
 /** Zones disponibles d'un type donné (uniquement celles où le bailleur a du patrimoine). */
 export function zoneOptions(index: PatrimoineIndex, type: ZoneType): ZoneOption[] {
   const out = new Map<string, ZoneOption & { n: number }>();
+  let cur: { epci?: string; departement?: string } = {};
   const add = (value: string | undefined, label: string | undefined, n: number) => {
     if (!value) return;
-    const o = out.get(value) ?? { value, label: label ?? value, n: 0 };
+    const o = out.get(value) ?? { value, label: label ?? value, n: 0, ...cur };
     o.n += n;
     out.set(value, o);
   };
   for (const r of index.residences.values()) {
+    cur = { epci: index.epciOf(r.communeInsee).code, departement: r.communeInsee?.slice(0, 2) };
     if (type === 'residence') add(r.id, `${r.nom} (${r.code})`, r.nbLogements);
     else if (type === 'commune') add(r.communeInsee, index.communes.get(r.communeInsee ?? '')?.nom ?? r.communeNom, r.nbLogements);
     else if (type === 'epci') {
@@ -44,7 +49,7 @@ export function zoneOptions(index: PatrimoineIndex, type: ZoneType): ZoneOption[
     else if (type === 'agence') add(r.agenceId, index.agenceNom(r.agenceId), r.nbLogements);
   }
   return [...out.values()]
-    .map((o) => ({ value: o.value, label: o.label, hint: `${o.n.toLocaleString('fr-FR')} lgt` }))
+    .map((o) => ({ value: o.value, label: o.label, hint: `${o.n.toLocaleString('fr-FR')} lgt`, epci: o.epci, departement: o.departement }))
     .sort((a, b) => a.label.localeCompare(b.label, 'fr'));
 }
 
@@ -95,16 +100,27 @@ function templateLayers(tpl: ExportTemplate, current: Record<string, LayerState>
 
 const basemapOf = (tpl: ExportTemplate) => (basemaps.find((b) => b.id === tpl.basemap) ?? basemaps[0]).id;
 
-/** Carte dynamique : applique le modèle à la carte principale et cadre la zone. */
-export function applyTemplateToMap(tpl: ExportTemplate, type: ZoneType, id: string) {
+/** Carte dynamique : applique le modèle à la carte principale et cadre la (ou les) zone(s). */
+export function applyTemplateToMap(tpl: ExportTemplate, type: ZoneType, ids: string | string[]) {
   const s = useAppStore.getState();
   if (!s.index) return;
-  const bounds = zoneBounds(s.index, type, id);
+  const list = Array.isArray(ids) ? ids : [ids];
+  const all = list.map((id) => zoneBounds(s.index!, type, id)).filter((b): b is Bounds => !!b);
+  const bounds = all.length ? boundsOf(all.flatMap(([[w, so], [e, n]]) => [{ lon: w, lat: so }, { lon: e, lat: n }])) : undefined;
+  const filters = { ...EMPTY_FILTERS, departements: [] } as Filters;
+  if (tpl.restrictToZone) {
+    for (const id of list) {
+      const f = zoneFilters(type, id);
+      for (const k of Object.keys(f) as (keyof Filters)[]) {
+        if (Array.isArray(f[k]) && (f[k] as string[]).length) (filters as unknown as Record<string, string[]>)[k] = [...((filters[k] as string[]) ?? []), ...(f[k] as string[])];
+      }
+    }
+  }
   useAppStore.setState({
     basemap: basemapOf(tpl),
     layers: templateLayers(tpl, s.layers),
     patrimoine: templateStyle(tpl, s.patrimoine),
-    filters: tpl.restrictToZone ? zoneFilters(type, id) : { ...EMPTY_FILTERS, departements: [] },
+    filters,
     selection: undefined,
   });
   if (bounds) s.flyTo({ bounds, zoom: tpl.maxZoom });
@@ -179,11 +195,57 @@ export async function renderTemplateImage(tpl: ExportTemplate, type: ZoneType, i
   }
 }
 
+const slugOf = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+
 export async function downloadTemplateImage(tpl: ExportTemplate, type: ZoneType, id: string) {
   const blob = await renderTemplateImage(tpl, type, id);
   const index = useAppStore.getState().index!;
-  const slug = zoneName(index, type, id).normalize('NFD').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
-  download(blob, `${tpl.id}-${slug}.png`);
+  download(blob, `${tpl.id}-${slugOf(zoneName(index, type, id))}.png`);
+}
+
+/**
+ * Export en série : une image par zone, regroupées dans un ZIP.
+ * Les zones sans position sont ignorées et signalées dans le résultat.
+ */
+export async function downloadTemplateImages(
+  tpl: ExportTemplate,
+  type: ZoneType,
+  ids: string[],
+  onProgress?: (done: number, total: number, label: string) => void,
+  signal?: { cancelled: boolean },
+): Promise<{ ok: number; failed: string[] }> {
+  if (ids.length === 1) {
+    await downloadTemplateImage(tpl, type, ids[0]);
+    return { ok: 1, failed: [] };
+  }
+  const index = useAppStore.getState().index!;
+  const files: Record<string, Uint8Array> = {};
+  const failed: string[] = [];
+  const used = new Set<string>();
+  for (let i = 0; i < ids.length; i++) {
+    if (signal?.cancelled) break;
+    const name = zoneName(index, type, ids[i]);
+    onProgress?.(i, ids.length, name);
+    try {
+      const blob = await renderTemplateImage(tpl, type, ids[i]);
+      let file = `${String(i + 1).padStart(3, '0')}-${slugOf(name) || ids[i]}.png`;
+      while (used.has(file)) file = file.replace('.png', '-bis.png');
+      used.add(file);
+      files[file] = new Uint8Array(await blob.arrayBuffer());
+    } catch (e) {
+      console.warn('Zone ignorée', name, e);
+      failed.push(name);
+    }
+  }
+  onProgress?.(ids.length, ids.length, '');
+  const n = Object.keys(files).length;
+  if (n) {
+    const { zipSync } = await import('fflate');
+    // PNG déjà compressés : stockage sans recompression (level 0), rapide.
+    const zip = zipSync(files, { level: 0 });
+    download(new Blob([zip as BlobPart], { type: 'application/zip' }), `${tpl.id}-${slugOf(ZONE_LABELS[type])}-${n}-images.zip`);
+  }
+  return { ok: n, failed };
 }
 
 /** Couches du modèle réellement disponibles (une couche désactivée en admin est ignorée). */
