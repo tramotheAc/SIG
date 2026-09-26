@@ -56,6 +56,8 @@ export interface Analysis {
   showOnMap: boolean;
 }
 
+const ROLE_KEYS: RoleKey[] = ['conseillerCommercial', 'gerantImmobilier', 'conseillerSocial', 'travailleurSocial'];
+
 interface State {
   status: 'idle' | 'loading' | 'ready' | 'error';
   progress?: string;
@@ -167,7 +169,19 @@ export const useAppStore = create<State & Actions>((set, get) => ({
     else if (by === 'qpv') s.setFilters({ qpv: apply(f.qpv) as Filters['qpv'] });
     else if (by === 'zoneApl') s.setFilters({ zonesApl: apply(f.zonesApl) });
     else if (by === 'zonePinel') s.setFilters({ zonesPinel: apply(f.zonesPinel) });
-    else s.setRoleFilter(by, apply(f.roles[by] ?? []));
+    else if (by === 'commune') s.setFilters({ communes: apply(f.communes) });
+    else if (by === 'epci') s.setFilters({ epcis: apply(f.epcis) });
+    else if (by === 'departement') s.setFilters({ departements: apply(f.departements ?? []) });
+    else if (by === 'quartier') s.setFilters({ quartiers: apply(f.quartiers ?? []) });
+    else if (ROLE_KEYS.includes(by as RoleKey)) s.setRoleFilter(by as RoleKey, apply(f.roles[by as RoleKey] ?? []));
+    else {
+      // Critère sans filtre dédié (typologie, financement…) : on masque toutes les autres valeurs.
+      const all = s.index?.allCategories(by) ?? [];
+      const hidden = s.patrimoine.hidden[by] ?? [];
+      const isolated = hidden.length === all.length - 1 && !hidden.includes(value);
+      set({ patrimoine: { ...s.patrimoine, hidden: { ...s.patrimoine.hidden, [by]: isolated ? [] : all.filter((v) => v !== value) } } });
+      return;
+    }
     // Une catégorie masquée qu'on isole redevient visible.
     const hidden = s.patrimoine.hidden[by] ?? [];
     if (hidden.includes(value)) get().toggleHidden(value);

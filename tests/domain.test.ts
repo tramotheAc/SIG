@@ -74,6 +74,23 @@ describe('PatrimoineIndex.compute', () => {
     expect(ix2.compute({ ...EMPTY_FILTERS, batiments: ['b2'] }, 'agence', new Set()).totals).toMatchObject({ logements: 1, batiments: 1 });
   });
 
+  it('nouveaux critères de légende : territoire et caractéristiques (valeur majoritaire)', () => {
+    const d = dataset();
+    d.logements[0].typeLot = 'T3';
+    d.logements[1].typeLot = 'T3';
+    d.logements[2].typeLot = 'T2';
+    d.residences[0].dateConstruction = '1974-01-01';
+    const ix2 = new PatrimoineIndex(d, communes);
+    expect(ix2.categoryOf('typeLot', d.residences[0])).toBe('T3');
+    expect(ix2.categoryOf('typeLot', d.logements[2])).toBe('T2');
+    expect(ix2.categoryOf('departement', d.residences[1])).toBe('44');
+    expect(ix2.categoryOf('periode', d.logements[0])).toBe('1970s');
+    expect(ix2.categoryLabel('periode', '1970s')).toBe('1970–1979');
+    expect(ix2.categoryLabel('epci', '244400404')).toBe('Nantes Métropole');
+    const v = ix2.compute(EMPTY_FILTERS, 'typeLot', new Set(['T2']));
+    expect(v.totals.logements).toBe(2);
+  });
+
   it('filtre de rôle métier', () => {
     const v = ix.compute({ ...EMPTY_FILTERS, roles: { gerantImmobilier: ['Gi 1'] } }, 'agence', new Set());
     expect(v.totals).toMatchObject({ logements: 2, residences: 1 });

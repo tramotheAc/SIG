@@ -1,7 +1,5 @@
-import { COLOR_BY_OPTIONS as ALL_COLOR_BY, type ColorBy } from '../../domain/symbology';
-import { siteConfig } from '../../config/siteConfig';
+import { ColorBySelect } from '../ColorBySelect';
 
-const COLOR_BY_OPTIONS = ALL_COLOR_BY.filter((o) => siteConfig.ui.colorBy.includes(o.key));
 import { levelForZoom } from '../../map/patrimoineLayers';
 import { useAppStore, type Representation } from '../../store/useAppStore';
 import { useFilteredView } from '../../store/useFilteredView';
@@ -50,14 +48,7 @@ export function PatrimoinePanel() {
       <Section title="Symbologie">
         <div className="field">
           <label className="field-label" htmlFor="color-by">Couleur par</label>
-          <select id="color-by" className="select" value={p.colorBy} onChange={(e) => setP({ colorBy: e.target.value as ColorBy })}>
-            <optgroup label="Organisation / métiers">
-              {COLOR_BY_OPTIONS.filter((o) => o.group === 'metier').map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-            </optgroup>
-            <optgroup label="Situation géographique">
-              {COLOR_BY_OPTIONS.filter((o) => o.group === 'geo').map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-            </optgroup>
-          </select>
+          <ColorBySelect id="color-by" />
         </div>
         <div className="field">
           <div className="field-label">Taille des points</div>

@@ -15,7 +15,8 @@ import type {
   Residence,
   RoleKey,
 } from './model';
-import { MISSING, QPV_LABELS, type ColorBy } from './symbology';
+import { LOGEMENT_LEVEL, MISSING, QPV_LABELS, type ColorBy } from './symbology';
+import { DEPARTEMENT_NAMES } from './regions';
 import { appConfig } from '../config/app.config';
 import { regionOfDep } from './regions';
 
@@ -117,7 +118,37 @@ export class PatrimoineIndex {
     for (const r of dataset.residences) this.residences.set(r.id, r);
     for (const b of dataset.batiments) this.batiments.set(b.id, b);
     for (const c of dataset.cages) this.cages.set(c.id, c);
-    for (const l of dataset.logements) this.logements.set(l.id, l);
+    for (const l of dataset.logements) {
+      this.logements.set(l.id, l);
+      if (l.residenceId) {
+        const arr = this.logementsByResidence.get(l.residenceId) ?? [];
+        arr.push(l);
+        this.logementsByResidence.set(l.residenceId, arr);
+      }
+    }
+  }
+
+  private readonly logementsByResidence = new Map<string, Logement[]>();
+  private readonly dominantCache = new Map<string, string>();
+
+  /** Valeur majoritaire d'un attribut de logement pour une résidence / une adresse. */
+  private dominant(by: ColorBy, obj: Residence | Batiment): string {
+    const key = `${by}|${obj.id}`;
+    const hit = this.dominantCache.get(key);
+    if (hit !== undefined) return hit;
+    const logs = 'batimentIds' in obj ? (this.logementsByResidence.get(obj.id) ?? []) : obj.logementIds.map((id) => this.logements.get(id)!).filter(Boolean);
+    const counts = new Map<string, number>();
+    for (const l of logs) {
+      const v = this.categoryOf(by, l);
+      counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    const best = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? MISSING;
+    this.dominantCache.set(key, best);
+    return best;
+  }
+
+  private residenceOf(obj: Residence | Batiment | Logement): Residence | undefined {
+    return 'batimentIds' in obj ? obj : obj.residenceId ? this.residences.get(obj.residenceId) : undefined;
   }
 
   /* ---------------------------- Accès contextuel ---------------------------- */
@@ -157,6 +188,27 @@ export class PatrimoineIndex {
         return this.geoOf(obj)?.zoneApl ?? MISSING;
       case 'zonePinel':
         return this.geoOf(obj)?.zonePinel ?? MISSING;
+      case 'commune':
+        return obj.communeInsee ?? MISSING;
+      case 'departement':
+        return obj.communeInsee?.slice(0, 2) ?? MISSING;
+      case 'epci':
+        return this.epciOf(obj.communeInsee).code ?? MISSING;
+      case 'quartier':
+        return this.residenceOf(obj)?.quartier ?? MISSING;
+      case 'periode': {
+        const y = Number(this.residenceOf(obj)?.dateConstruction?.slice(0, 4));
+        if (!y) return MISSING;
+        return y < 1950 ? 'Avant 1950' : `${Math.floor(y / 10) * 10}s`;
+      }
+      case 'modeAcquisition':
+        return this.residenceOf(obj)?.modeAcquisition ?? MISSING;
+      case 'typeLot':
+      case 'financement':
+      case 'individuelCollectif':
+      case 'etat':
+        if ('cageIds' in obj || 'batimentIds' in obj) return this.dominant(by, obj);
+        return (obj as Logement)[by] ?? MISSING;
       default:
         return obj.responsables[by] ?? MISSING;
     }
@@ -169,6 +221,10 @@ export class PatrimoineIndex {
     if (by === 'qpv') return QPV_LABELS[value as QpvStatus] ?? value;
     if (by === 'zoneApl') return `Zone ${value}`;
     if (by === 'zonePinel') return `Zone ${value === 'Abis' ? 'A bis' : value}`;
+    if (by === 'commune') return this.communes.get(value)?.nom ?? [...this.residences.values()].find((r) => r.communeInsee === value)?.communeNom ?? value;
+    if (by === 'epci') return [...this.communes.values()].find((c) => c.epciCode === value)?.epciNom ?? value;
+    if (by === 'departement') return `${value} – ${DEPARTEMENT_NAMES[value] ?? 'Département'}`;
+    if (by === 'periode') return value.endsWith('s') ? `${value.slice(0, -1)}–${Number(value.slice(0, 4)) + 9}` : value;
     return value;
   }
 
@@ -177,7 +233,7 @@ export class PatrimoineIndex {
     const set = new Set<string>();
     if (by === 'agence') for (const a of this.agences.keys()) set.add(a);
     for (const r of this.residences.values()) set.add(this.categoryOf(by, r));
-    if (by === 'conseillerSocial') for (const l of this.logements.values()) set.add(this.categoryOf(by, l));
+    if (by === 'conseillerSocial' || LOGEMENT_LEVEL.includes(by)) for (const l of this.logements.values()) set.add(this.categoryOf(by, l));
     return [...set];
   }
 

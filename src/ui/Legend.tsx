@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
-import { MISSING, COLOR_BY_OPTIONS } from '../domain/symbology';
+import { MISSING, COLOR_BY_OPTIONS, type ColorBy } from '../domain/symbology';
+
+/** Critères ordonnés : légende triée par valeur (T1→T5, décennies) et non par effectif. */
+const ORDINAL: ColorBy[] = ['typeLot', 'periode', 'zoneApl', 'zonePinel', 'departement'];
 import { colorRegistry } from '../store/colorRegistry';
 import { useAppStore } from '../store/useAppStore';
 import { useFilteredView } from '../store/useFilteredView';
@@ -34,7 +37,9 @@ export function Legend({ compact = false }: { compact?: boolean }) {
         logements: stats.get(value)?.logements ?? 0,
         residences: stats.get(value)?.residences ?? 0,
       }))
-      .sort((a, b) => (a.value === MISSING ? 1 : b.value === MISSING ? -1 : b.logements - a.logements || a.label.localeCompare(b.label, 'fr')));
+      .sort((a, b) =>
+        a.value === MISSING ? 1 : b.value === MISSING ? -1 : ORDINAL.includes(colorBy) ? a.value.localeCompare(b.value, 'fr', { numeric: true }) : b.logements - a.logements || a.label.localeCompare(b.label, 'fr'),
+      );
   }, [index, colorBy, view, geoVersion]);
 
   if (!index) return null;
@@ -75,5 +80,9 @@ function activeValues(colorBy: string, f: ReturnType<typeof useAppStore.getState
   if (colorBy === 'qpv') return f.qpv;
   if (colorBy === 'zoneApl') return f.zonesApl;
   if (colorBy === 'zonePinel') return f.zonesPinel;
+  if (colorBy === 'commune') return f.communes;
+  if (colorBy === 'epci') return f.epcis;
+  if (colorBy === 'departement') return f.departements ?? [];
+  if (colorBy === 'quartier') return f.quartiers ?? [];
   return f.roles[colorBy as keyof typeof f.roles] ?? [];
 }

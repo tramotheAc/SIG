@@ -3,9 +3,35 @@ import { zoneColors } from '../config/layers.config';
 import type { QpvStatus, RoleKey } from './model';
 
 /** Critères de coloration du patrimoine. */
-export type ColorBy = 'agence' | RoleKey | 'qpv' | 'zoneApl' | 'zonePinel';
+export type ColorBy =
+  | 'agence'
+  | RoleKey
+  | 'qpv'
+  | 'zoneApl'
+  | 'zonePinel'
+  | 'commune'
+  | 'epci'
+  | 'departement'
+  | 'quartier'
+  | 'typeLot'
+  | 'financement'
+  | 'individuelCollectif'
+  | 'etat'
+  | 'periode'
+  | 'modeAcquisition';
 
-export const COLOR_BY_OPTIONS: { key: ColorBy; label: string; group: 'metier' | 'geo' }[] = [
+/** Critères portés par les logements : la résidence / l'adresse prend la valeur majoritaire. */
+export const LOGEMENT_LEVEL: ColorBy[] = ['typeLot', 'financement', 'individuelCollectif', 'etat'];
+
+export type ColorGroup = 'metier' | 'territoire' | 'patrimoine' | 'geo';
+export const COLOR_GROUP_LABELS: Record<ColorGroup, string> = {
+  metier: 'Organisation / métiers',
+  territoire: 'Territoire',
+  patrimoine: 'Caractéristiques du patrimoine',
+  geo: 'Référentiels',
+};
+
+export const COLOR_BY_OPTIONS: { key: ColorBy; label: string; group: ColorGroup }[] = [
   { key: 'agence', label: 'Agence', group: 'metier' },
   { key: 'conseillerCommercial', label: 'Conseiller commercial', group: 'metier' },
   { key: 'gerantImmobilier', label: 'Gérant immobilier', group: 'metier' },
@@ -14,6 +40,16 @@ export const COLOR_BY_OPTIONS: { key: ColorBy; label: string; group: 'metier' | 
   { key: 'qpv', label: 'Situation QPV', group: 'geo' },
   { key: 'zoneApl', label: 'Zone APL', group: 'geo' },
   { key: 'zonePinel', label: 'Zone Pinel (ABC)', group: 'geo' },
+  { key: 'departement', label: 'Département', group: 'territoire' },
+  { key: 'epci', label: 'EPCI', group: 'territoire' },
+  { key: 'commune', label: 'Commune', group: 'territoire' },
+  { key: 'quartier', label: 'Quartier', group: 'territoire' },
+  { key: 'typeLot', label: 'Typologie (T1…T5)', group: 'patrimoine' },
+  { key: 'financement', label: 'Financement', group: 'patrimoine' },
+  { key: 'individuelCollectif', label: 'Individuel / collectif', group: 'patrimoine' },
+  { key: 'etat', label: 'État du logement', group: 'patrimoine' },
+  { key: 'periode', label: 'Période de construction', group: 'patrimoine' },
+  { key: 'modeAcquisition', label: 'Mode d’acquisition', group: 'patrimoine' },
 ];
 
 export const MISSING = '__missing__';

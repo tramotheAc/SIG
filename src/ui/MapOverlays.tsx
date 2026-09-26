@@ -4,6 +4,7 @@ import { useAppStore } from '../store/useAppStore';
 import { ActiveFilters } from './ActiveFilters';
 import { Icon } from './components/Icon';
 import { Legend } from './Legend';
+import { ColorBySelect } from './ColorBySelect';
 import { LEVEL_LABELS } from './panels/PatrimoinePanel';
 
 /** Éléments superposés à la carte : filtres actifs, légende, niveau, chargement, notifications. */
@@ -36,6 +37,11 @@ export function MapOverlays() {
             <span className="grow">Légende</span>
             <span className="muted small legend-level">{LEVEL_LABELS[level]}</span>
           </button>
+          {legendOpen && (
+            <div className="legend-choose">
+              <ColorBySelect id="legend-color-by" compact />
+            </div>
+          )}
           {legendOpen && <Legend compact />}
         </div>
       )}
